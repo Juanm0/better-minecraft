@@ -29,9 +29,9 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
  * Solo se decide al generar un chunk NUEVO, asi que no se repite al reiniciar el mundo.
  */
 public final class FloatingEndCityGenerator {
-	/** Una ciudad por celda de SPACING x SPACING chunks (56 = ~900 bloques), con CHANCE % de que la celda tenga ciudad. */
-	private static final int SPACING = 56;
-	private static final int CHANCE = 65;
+	/** Una ciudad por celda de SPACING x SPACING chunks (80 = ~1280 bloques, como las mansiones), con CHANCE % de que la celda tenga ciudad. */
+	private static final int SPACING = 80;
+	private static final int CHANCE = 85;
 	private static final Map<ResourceKey<Level>, ArrayDeque<BlockPos>> PENDING = new HashMap<>();
 
 	private FloatingEndCityGenerator() {
@@ -72,16 +72,47 @@ public final class FloatingEndCityGenerator {
 		return h;
 	}
 
-	private static boolean isHost(long seed, int chunkX, int chunkZ) {
-		int sx = Math.floorDiv(chunkX, SPACING);
-		int sz = Math.floorDiv(chunkZ, SPACING);
+	/** Chunk anfitrion {x, z} de la celda (sx, sz), o null si esa celda no tiene ciudad. */
+	private static int[] hostOf(long seed, int sx, int sz) {
 		long h = hash(seed, sx, sz);
 		if (Math.floorMod(h >>> 40, 100L) >= CHANCE) {
-			return false;
+			return null;
 		}
 		int offX = 3 + (int) Math.floorMod(h, (long) (SPACING - 6));
 		int offZ = 3 + (int) Math.floorMod(h >>> 20, (long) (SPACING - 6));
-		return chunkX == sx * SPACING + offX && chunkZ == sz * SPACING + offZ;
+		return new int[] {sx * SPACING + offX, sz * SPACING + offZ};
+	}
+
+	private static boolean isHost(long seed, int chunkX, int chunkZ) {
+		int[] host = hostOf(seed, Math.floorDiv(chunkX, SPACING), Math.floorDiv(chunkZ, SPACING));
+		return host != null && host[0] == chunkX && host[1] == chunkZ;
+	}
+
+	/**
+	 * Posicion (x, z en bloques, y = 0) de la End City flotante mas cercana segun la semilla, o null si no hay ninguna cerca.
+	 * Lista para un mapa de cartografo (pendiente): ver HANDOFF_PROMPT.md.
+	 */
+	public static BlockPos nearestCity(long seed, int blockX, int blockZ) {
+		int csx = Math.floorDiv(blockX >> 4, SPACING);
+		int csz = Math.floorDiv(blockZ >> 4, SPACING);
+		BlockPos best = null;
+		double bestDist = Double.MAX_VALUE;
+		for (int sx = csx - 2; sx <= csx + 2; sx++) {
+			for (int sz = csz - 2; sz <= csz + 2; sz++) {
+				int[] host = hostOf(seed, sx, sz);
+				if (host == null) {
+					continue;
+				}
+				int bx = host[0] * 16 + 8;
+				int bz = host[1] * 16 + 8;
+				double d = (double) (bx - blockX) * (bx - blockX) + (double) (bz - blockZ) * (bz - blockZ);
+				if (d < bestDist) {
+					bestDist = d;
+					best = new BlockPos(bx, 0, bz);
+				}
+			}
+		}
+		return best;
 	}
 
 	private static void generate(ServerLevel level, int cx, int cz) {

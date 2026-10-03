@@ -4,11 +4,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerBlockEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
+import name.modid.BetterMinecraft;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -32,27 +35,44 @@ public final class BrewingStandMixing {
 	private static final int INGREDIENT_SLOT = 3;
 
 	private static final List<BrewingStandBlockEntity> TRACKED = new ArrayList<>();
+	private static final java.util.Set<BrewingStandBlockEntity> LOGGED = new java.util.HashSet<>();
 	private static final Map<BrewingStandBlockEntity, Integer> PROGRESS = new HashMap<>();
 
 	private BrewingStandMixing() {
 	}
 
 	public static void init() {
-		ServerBlockEntityEvents.BLOCK_ENTITY_LOAD.register((blockEntity, level) -> {
-			if (blockEntity instanceof BrewingStandBlockEntity stand && !TRACKED.contains(stand)) {
-				TRACKED.add(stand);
-			}
-		});
-		ServerBlockEntityEvents.BLOCK_ENTITY_UNLOAD.register((blockEntity, level) -> {
-			if (blockEntity instanceof BrewingStandBlockEntity stand) {
-				TRACKED.remove(stand);
-				PROGRESS.remove(stand);
-			}
-		});
 		ServerTickEvents.END_LEVEL_TICK.register(BrewingStandMixing::tick);
 	}
 
+	/** Cada segundo busca soportes para pociones en los chunks cercanos a los jugadores (sin depender de eventos de carga). */
+	private static void scan(ServerLevel level) {
+		TRACKED.removeIf(stand -> stand.getLevel() == level);
+		for (ServerPlayer player : level.players()) {
+			int pcx = player.blockPosition().getX() >> 4;
+			int pcz = player.blockPosition().getZ() >> 4;
+			for (int dx = -4; dx <= 4; dx++) {
+				for (int dz = -4; dz <= 4; dz++) {
+					LevelChunk chunk = level.getChunkSource().getChunkNow(pcx + dx, pcz + dz);
+					if (chunk == null) {
+						continue;
+					}
+					for (BlockEntity be : chunk.getBlockEntities().values()) {
+						if (be instanceof BrewingStandBlockEntity stand && !be.isRemoved() && !TRACKED.contains(stand)) {
+							TRACKED.add(stand);
+						}
+					}
+				}
+			}
+		}
+		PROGRESS.keySet().removeIf(stand -> !TRACKED.contains(stand));
+		LOGGED.removeIf(stand -> !TRACKED.contains(stand));
+	}
+
 	private static void tick(ServerLevel level) {
+		if (level.getGameTime() % 20 == 0) {
+			scan(level);
+		}
 		if (TRACKED.isEmpty()) {
 			return;
 		}
@@ -62,9 +82,17 @@ public final class BrewingStandMixing {
 			}
 			if (!canProcess(stand)) {
 				PROGRESS.remove(stand);
+				ItemStack ing = stand.getItem(INGREDIENT_SLOT);
+				if ((ing.is(Items.GUNPOWDER) || ing.is(Items.REDSTONE)) && LOGGED.add(stand)) {
+					BetterMinecraft.LOGGER.info("Soporte {}: ingrediente {} pero ninguna botella aplicable; slot0={} contenido={}",
+						stand.getBlockPos(), ing.getItem(), stand.getItem(0), stand.getItem(0).get(DataComponents.POTION_CONTENTS));
+				}
 				continue;
 			}
 			int progress = PROGRESS.getOrDefault(stand, 0) + 1;
+			if (progress == 1) {
+				BetterMinecraft.LOGGER.info("Soporte de pociones en {} empezo a procesar pociones mezcladas", stand.getBlockPos());
+			}
 			if (progress < BREW_TICKS) {
 				PROGRESS.put(stand, progress);
 				continue;
