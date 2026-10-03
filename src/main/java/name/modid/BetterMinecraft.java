@@ -3,6 +3,7 @@ package name.modid;
 import name.modid.beacon.BeaconProtectionManager;
 import name.modid.dragon.DragonDamage;
 import name.modid.dragon.DragonFightManager;
+import name.modid.potion.PotionMod;
 import net.fabricmc.api.ModInitializer;
 
 import net.minecraft.resources.Identifier;
@@ -28,8 +29,9 @@ public class BetterMinecraft implements ModInitializer {
 		DragonFightManager.init();
 		DragonDamage.init();
 		BeaconProtectionManager.init();
+		PotionMod.init();
 
-		LOGGER.info("Better Minecraft loaded: enchanting reroll, two-phase dragon, beacon protection.");
+		LOGGER.info("Better Minecraft loaded: enchanting reroll, two-phase dragon, beacon protection, potion cauldron.");
 	}
 
 	public static Identifier id(String path) {

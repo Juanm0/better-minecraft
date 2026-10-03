@@ -2,7 +2,9 @@
 	"required": true,
 	"package": "name.modid.client.mixin",
 	"compatibilityLevel": "JAVA_25",
-	"client": [],
+	"client": [
+		"EnchantmentScreenMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	},
