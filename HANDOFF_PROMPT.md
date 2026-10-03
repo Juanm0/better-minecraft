@@ -5,7 +5,7 @@ Respondeme en espanol rioplatense. NO me hagas preguntas de confirmacion: decidi
 explicame despues que hiciste y que podria fallar. Yo pruebo y te cuento.
 El proyecto es solo Fabric: no uses ni me pidas instalar NeoForge/Forge (solo se lo lee como referencia).
 
-Te adjunto el zip del proyecto (`better-minecraft-etapa5.zip`). Descomprimilo y trabaja sobre ese codigo.
+Te adjunto el zip del proyecto (`better-minecraft-etapa6.zip`). Descomprimilo y trabaja sobre ese codigo.
 
 ## Entorno (verificado)
 - Minecraft 26.3, Fabric Loader 0.19.5, Fabric API 0.161.0+26.3, Loom 1.18-SNAPSHOT, Java 25.
@@ -46,7 +46,7 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 **Etapa 3/4 (compila y funciona, probado en juego):** `client/mixin/EnchantmentScreenMixin` (costo real en la UI de la mesa) y cazuela de pociones
 (`potion/*`): pocion con efectos sobre caldero = mezcla de efectos (gana mayor nivel, luego mayor duracion); botella de vidrio = pocion con todos los efectos.
 
-**Etapa 5 (SIN probar; no se si compila): visuales y niveles de la cazuela**
+**Etapa 5 (compila y funciona, probado en juego): visuales y niveles de la cazuela**
 - `PotionCauldronBlock` ahora tiene `LEVEL` (1..3 = cuantas botellas rinde) y `COLOR` (indice 0..15 de `PotionColors`) en el BlockState,
   y `animateTick` con particulas `ENTITY_EFFECT` del color del liquido.
 - `PotionColors`: paleta fija de 16 colores (0 = violeta de mezcla). `nearest(rgb)` elige el mas cercano al color del efecto (`MobEffect.getColor()`).
@@ -61,9 +61,16 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Apuestas sin verificar contra 26.3: `ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, int)`, `Block.animateTick(BlockState, Level, BlockPos, RandomSource)`,
   `MobEffect.getColor()`, `LayeredCauldronBlock.LEVEL`, nombres de los modelos vanilla de caldero con agua, y que las clases de tint no cambiaron de paquete en 26.3.
 
+**Etapa 6 (SIN probar; no se si compila): polvora y redstone en la cazuela**
+- Polvora sobre la cazuela de pociones: `PotionCauldronBlockEntity.splash = true` (se guarda con `putBoolean`/`getBooleanOr`, apuesta: `getBooleanOr`);
+  la botella de vidrio entrega `Items.SPLASH_POTION` en vez de `Items.POTION`. Si ya era arrojable no se consume.
+- Redstone: +8 min (9600 ticks) a cada efecto, tope 16 min (19200 ticks). No toca efectos instantaneos (duracion <= 1) ni infinitos; los que ya estan
+  en el tope no suben. Si ninguno puede subir, no se consume la redstone. Se rearma cada efecto con `new MobEffectInstance(holder, duracion, amplificador)`.
+- Todo en `PotionCauldronInteraction`; el estado extra vive en el BlockEntity (no cambia el BlockState).
+
 ## Tareas pendientes (en este orden)
-A. **Verificar etapa 5**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
-   (buscar `Mixin apply failed` / `InvalidInjectionException`). Si el liquido se ve sin color o con textura rota, revisar los nombres de modelos del blockstate.
+A. **Verificar etapa 6**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
+   (buscar `Mixin apply failed` / `InvalidInjectionException`). 
 C. **End Cities en el Overworld sobre islas flotantes de End Stone** (Y >= 180) — NO HECHO: conservar End Ships, Shulkers y Elytra y la estructura de vanilla
    (`EndCityPieces`). Un JSON de estructura `minecraft:end_city` la pone sobre el terreno, no flotando. Opciones: `Structure` propia en Java que genere una isla
    y llame a `EndCityPieces.startHouseTower(...)`, o evento de generacion de chunk. NO escribirlo sin ver `EndCityPieces`/`EndCityStructure`: pedime el artefacto
