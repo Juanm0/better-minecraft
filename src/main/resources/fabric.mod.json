@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "better-minecraft",
+  "version": "${version}",
+  "name": "Better Minecraft",
+  "description": "Reroll de la mesa de encantamientos con lapislazuli. En desarrollo: pociones, Ender Dragon en dos fases.",
+  "authors": [
+    "Juan Navarro"
+  ],
+  "contact": {
+    "homepage": "https://fabricmc.net/",
+    "sources": "https://github.com/FabricMC/fabric-example-mod"
+  },
+  "license": "CC0-1.0",
+  "icon": "assets/better-minecraft/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "name.modid.BetterMinecraft"
+    ],
+    "client": [
+      "name.modid.client.BetterMinecraftClient"
+    ]
+  },
+  "mixins": [
+    "better-minecraft.mixins.json",
+    {
+      "config": "better-minecraft.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}

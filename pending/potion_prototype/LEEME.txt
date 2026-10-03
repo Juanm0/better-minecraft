@@ -1,0 +1,8 @@
+Prototipo de la cazuela de pociones. NO se compila (esta fuera de src/).
+Problemas encontrados en 26.3:
+ 1. Importa BlockEntityProvider: en 26.3 se llama EntityBlock (net.minecraft.world.level.block.EntityBlock).
+ 2. El bloque se crea sin Properties.setId(...): el juego se cierra al registrarlo.
+ 3. PotionMod.initialize() nunca se llama, asi que el bloque no se registra.
+ 4. El BlockEntity no guarda ni carga los efectos: se pierden al recargar el mundo.
+ 5. PotionCauldronData.java no se usa en ningun lado.
+Se reescribe en la etapa 2.

@@ -1,0 +1,46 @@
+# Automatically build the project and run any configured tests for every push
+# and submitted pull request. This can help catch issues that only occur on
+# certain platforms or Java versions, and provides a first line of defence
+# against bad commits.
+
+name: build
+on: [pull_request, push]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v6
+      - name: validate gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+      - name: setup jdk
+        uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'microsoft'
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
+      - name: export decompiled sources (for the next stages)
+        continue-on-error: true
+        run: |
+          ./gradlew genSources --no-daemon
+          mkdir -p dump
+          J=$(find "$HOME/.gradle" -name '*sources.jar' | grep -i minecraft | head -1)
+          echo "Using: $J"
+          unzip -o "$J" '*EnchantmentMenu.java' '*EnchantmentScreen.java' '*boss/enderdragon/*' '*dimension/end/*' '*SpikeFeature.java' '*SpikeConfiguration.java' '*EndPodiumFeature.java' '*EndCityStructure.java' '*EndCityPieces.java' '*ExperienceOrb.java' '*EndCrystal.java' '*BeaconBlockEntity.java' '*DragonFireball.java' '*WitherSkull.java' '*AreaEffectCloud.java' '*PotionContents.java' '*EntityBlock.java' -d dump || true
+          find dump -type f | wc -l
+      - name: upload decompiled sources
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: decompiled-sources
+          path: dump/
+          if-no-files-found: ignore
+      - name: build
+        run: ./gradlew build
+      - name: capture build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: Artifacts
+          path: build/libs/
