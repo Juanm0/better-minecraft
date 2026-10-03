@@ -5,7 +5,7 @@ Respondeme en espanol rioplatense. NO me hagas preguntas de confirmacion: decidi
 explicame despues que hiciste y que podria fallar. Yo pruebo y te cuento.
 El proyecto es solo Fabric: no uses ni me pidas instalar NeoForge/Forge (solo se lo lee como referencia).
 
-Te adjunto el zip del proyecto (`better-minecraft-etapa13.zip`). Descomprimilo y trabaja sobre ese codigo.
+Te adjunto el zip del proyecto (`better-minecraft-etapa14.zip`). Descomprimilo y trabaja sobre ese codigo.
 
 ## Entorno (verificado)
 - Minecraft 26.3, Fabric Loader 0.19.5, Fabric API 0.161.0+26.3, Loom 1.18-SNAPSHOT, Java 25.
@@ -61,7 +61,14 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Apuestas sin verificar contra 26.3: `ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, int)`, `Block.animateTick(BlockState, Level, BlockPos, RandomSource)`,
   `MobEffect.getColor()`, `LayeredCauldronBlock.LEVEL`, nombres de los modelos vanilla de caldero con agua, y que las clases de tint no cambiaron de paquete en 26.3.
 
-**Etapa 13 (SIN probar, no se si compila): destiladora (brewing stand)**
+**Etapa 14 (SIN probar, no se si compila): destiladora**
+- La etapa 13 funciono (salen los carteles). Problemas reportados y arreglos: (1) sin animacion -> se escribe por REFLEXION el campo privado `BrewingStandBlockEntity.brewTime`
+  (`BREW_TICKS - progress`, 400 ticks como vanilla) para la flecha/burbujas de la GUI; si el campo no existe se loguea un warning. (2) con una pocion vanilla + una mezclada en el mismo soporte,
+  vanilla y el mod procesaban ambas y la redstone se aplicaba doble -> ahora el mod NO procesa si hay en las botellas algo que no sea pocion mezclada (`hasForeignBottle`) y avisa.
+  (3) redstone progresiva: 1a vez +8 min, 2a +6, luego +4 (tope 16); el contador de refuerzos se guarda en `DataComponents.REPAIR_COST` de la botella (truco sin NBT).
+- Si aun falta animacion: probar tambien escribir el campo `fuel`, o hacer Mixin a `BrewingStandBlockEntity.serverTick`.
+
+**Etapa 13 (compila y funciona): destiladora (brewing stand)**
 - El cartografo de la etapa 12 FUNCIONA (probado). End Cities OK. Lo unico que falla: `BrewingStandMixing` no convertia las pociones mezcladas (ni polvora ni redstone), causa NO identificada.
 - Cambios: tiempo 10 s (`BREW_TICKS = 200`); ademas del escaneo (ahora solo agrega, no borra) se rastrea el soporte en `UseBlockCallback` al abrirlo; mensajes en la action bar
   ("Destiladora: mezclando... / lista / duracion aumentada / no hay pociones mezcladas aplicables") y logs "Soporte ...". Pedir al usuario que diga que mensaje ve o el `latest.log`.
@@ -105,7 +112,7 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Todo en `PotionCauldronInteraction`; el estado extra vive en el BlockEntity (no cambia el BlockState).
 
 ## Tareas pendientes (en este orden)
-A. **Verificar etapa 13**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
+A. **Verificar etapa 14**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
    (buscar `Mixin apply failed` / `InvalidInjectionException`). 
 C. **End Cities flotantes (etapa 8, SIN probar, no se si compila)**: `world/FloatingEndCityGenerator`. Sin Mixins ni Structure propia: en
    `ServerChunkEvents.CHUNK_LOAD (level, chunk, newlyGenerated)` (apuesta: la firma con 3 parametros) se detecta el chunk "anfitrion" de cada celda de 20x20 chunks

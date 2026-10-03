@@ -28,19 +28,54 @@ import net.minecraft.world.level.block.entity.BrewingStandBlockEntity;
  * Soporte para pociones (brewing stand) para las pociones MEZCLADAS de la cazuela (sin pocion base, solo efectos propios),
  * que el sistema de recetas de vanilla no reconoce:
  * - Polvora en el ingrediente: la pocion pasa a ser arrojable.
- * - Redstone en el ingrediente: +8 min a cada efecto, tope 16 min (si ningun efecto puede subir, no hace nada ni gasta redstone).
+ * - Redstone en el ingrediente: 1a vez +8 min, 2a +6, luego +4 a cada efecto, tope 16 min (si ningun efecto puede subir, no hace nada ni gasta redstone).
  * Sin Mixins: se rastrean los brewing stands cargados y se corre un temporizador propio de 20 s (no usa combustible).
  * Las pociones vanilla siguen con la logica de vanilla.
  */
 public final class BrewingStandMixing {
 	public static final int MAX_DURATION = 16 * 60 * 20;
 	public static final int BONUS = 8 * 60 * 20;
-	private static final int BREW_TICKS = 200;
+	private static final int BREW_TICKS = 400; // igual que vanilla (20 s)
 	private static final int INGREDIENT_SLOT = 3;
 
 	private static final List<BrewingStandBlockEntity> TRACKED = new ArrayList<>();
 	private static final java.util.Set<BrewingStandBlockEntity> LOGGED = new java.util.HashSet<>();
 	private static final Map<BrewingStandBlockEntity, Integer> PROGRESS = new HashMap<>();
+
+	/** brewTime privado del soporte: lo escribimos para que la GUI muestre la flecha y las burbujas de vanilla. */
+	private static final java.lang.reflect.Field BREW_TIME_FIELD = findBrewTimeField();
+
+	private static java.lang.reflect.Field findBrewTimeField() {
+		try {
+			java.lang.reflect.Field f = BrewingStandBlockEntity.class.getDeclaredField("brewTime");
+			f.setAccessible(true);
+			return f;
+		} catch (ReflectiveOperationException | RuntimeException e) {
+			BetterMinecraft.LOGGER.warn("No se encontro BrewingStandBlockEntity.brewTime: sin animacion de la destiladora", e);
+			return null;
+		}
+	}
+
+	private static void setBrewTime(BrewingStandBlockEntity stand, int value) {
+		if (BREW_TIME_FIELD != null) {
+			try {
+				BREW_TIME_FIELD.setInt(stand, value);
+			} catch (ReflectiveOperationException | RuntimeException ignored) {
+				// sin animacion
+			}
+		}
+	}
+
+	/** Hay en las botellas algo que NO es una pocion mezclada (vanilla o botella vacia): se deja trabajar a vanilla para no procesar dos veces. */
+	private static boolean hasForeignBottle(BrewingStandBlockEntity stand) {
+		for (int i = 0; i < 3; i++) {
+			ItemStack stack = stand.getItem(i);
+			if (!stack.isEmpty() && !isMixed(stack)) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 	private BrewingStandMixing() {
 	}
@@ -100,10 +135,14 @@ public final class BrewingStandMixing {
 				continue;
 			}
 			if (!canProcess(stand)) {
-				PROGRESS.remove(stand);
+				if (PROGRESS.remove(stand) != null) {
+					setBrewTime(stand, 0);
+				}
 				ItemStack ing = stand.getItem(INGREDIENT_SLOT);
 				if ((ing.is(Items.GUNPOWDER) || ing.is(Items.REDSTONE)) && LOGGED.add(stand)) {
-					notifyNear(level, stand.getBlockPos(), "Destiladora: no hay pociones mezcladas aplicables (ver latest.log)");
+					notifyNear(level, stand.getBlockPos(), hasForeignBottle(stand)
+						? "Destiladora: no mezcles pociones de vanilla ni botellas vacias con las mezcladas"
+						: "Destiladora: ninguna pocion mezclada se puede mejorar con eso");
 					BetterMinecraft.LOGGER.info("Soporte {}: ingrediente {} pero ninguna botella aplicable; slot0={} contenido={}",
 						stand.getBlockPos(), ing.getItem(), stand.getItem(0), stand.getItem(0).get(DataComponents.POTION_CONTENTS));
 				}
@@ -112,13 +151,15 @@ public final class BrewingStandMixing {
 			int progress = PROGRESS.getOrDefault(stand, 0) + 1;
 			if (progress == 1) {
 				BetterMinecraft.LOGGER.info("Soporte de pociones en {} empezo a procesar pociones mezcladas", stand.getBlockPos());
-				notifyNear(level, stand.getBlockPos(), "Destiladora: mezclando... (10 s)");
+				notifyNear(level, stand.getBlockPos(), "Destiladora: mezclando... (20 s)");
 			}
 			if (progress < BREW_TICKS) {
 				PROGRESS.put(stand, progress);
+				setBrewTime(stand, BREW_TICKS - progress); // animacion de vanilla en la GUI
 				continue;
 			}
 			PROGRESS.remove(stand);
+			setBrewTime(stand, 0);
 			process(level, stand);
 		}
 	}
@@ -128,6 +169,9 @@ public final class BrewingStandMixing {
 		ItemStack ingredient = stand.getItem(INGREDIENT_SLOT);
 		boolean gunpowder = ingredient.is(Items.GUNPOWDER);
 		if (!gunpowder && !ingredient.is(Items.REDSTONE)) {
+			return false;
+		}
+		if (hasForeignBottle(stand)) {
 			return false;
 		}
 		for (int i = 0; i < 3; i++) {
@@ -175,12 +219,15 @@ public final class BrewingStandMixing {
 			splash.set(DataComponents.POTION_CONTENTS, contents);
 			return splash;
 		}
+		// Cuantas veces ya se le puso redstone (se guarda en el componente REPAIR_COST, que no se usa en pociones): 1a vez +8 min, 2a +6, luego +4.
+		int boosts = stack.getOrDefault(DataComponents.REPAIR_COST, 0);
+		int bonus = boosts <= 0 ? BONUS : (boosts == 1 ? 6 * 60 * 20 : 4 * 60 * 20);
 		boolean changed = false;
 		PotionContents extended = PotionContents.EMPTY;
 		for (MobEffectInstance effect : contents.getAllEffects()) {
 			int duration = effect.getDuration();
 			if (duration > 1 && duration < MAX_DURATION) {
-				extended = extended.withEffectAdded(new MobEffectInstance(effect.getEffect(), Math.min(MAX_DURATION, duration + BONUS), effect.getAmplifier()));
+				extended = extended.withEffectAdded(new MobEffectInstance(effect.getEffect(), Math.min(MAX_DURATION, duration + bonus), effect.getAmplifier()));
 				changed = true;
 			} else {
 				extended = extended.withEffectAdded(new MobEffectInstance(effect));
@@ -192,6 +239,7 @@ public final class BrewingStandMixing {
 		ItemStack out = stack.copy();
 		out.setCount(1);
 		out.set(DataComponents.POTION_CONTENTS, extended);
+		out.set(DataComponents.REPAIR_COST, boosts + 1);
 		return out;
 	}
 
