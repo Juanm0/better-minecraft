@@ -5,7 +5,7 @@ Respondeme en espanol rioplatense. NO me hagas preguntas de confirmacion: decidi
 explicame despues que hiciste y que podria fallar. Yo pruebo y te cuento.
 El proyecto es solo Fabric: no uses ni me pidas instalar NeoForge/Forge (solo se lo lee como referencia).
 
-Te adjunto el zip del proyecto (`better-minecraft-etapa8.zip`). Descomprimilo y trabaja sobre ese codigo.
+Te adjunto el zip del proyecto (`better-minecraft-etapa9.zip`). Descomprimilo y trabaja sobre ese codigo.
 
 ## Entorno (verificado)
 - Minecraft 26.3, Fabric Loader 0.19.5, Fabric API 0.161.0+26.3, Loom 1.18-SNAPSHOT, Java 25.
@@ -61,6 +61,8 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Apuestas sin verificar contra 26.3: `ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, int)`, `Block.animateTick(BlockState, Level, BlockPos, RandomSource)`,
   `MobEffect.getColor()`, `LayeredCauldronBlock.LEVEL`, nombres de los modelos vanilla de caldero con agua, y que las clases de tint no cambiaron de paquete en 26.3.
 
+**Etapa 9: la 8 fallo por `MinecraftServer.getStructureManager()` (no existe en 26.3; ahora se obtiene el `StructureTemplateManager` por reflexion en `FloatingEndCityGenerator.templateManager`) y por `new ChunkPos(BlockPos)` (ChunkPos es record: `new ChunkPos(int,int)`).
+
 **Etapa 6/7/8 (etapa 7 NO compilaba: `Player.displayClientMessage` no existe; en la 8 se uso `ServerPlayer.sendSystemMessage(Component, true)` (apuesta). Antes: el usuario reporta que polvora y redstone NO hacen nada en el juego; en la etapa 7 se agregaron mensajes en la action bar y un log al arrancar (`etapa 6 (polvora/redstone...`) para diagnosticar; pedirle `latest.log` y que diga que mensaje ve): polvora y redstone en la cazuela**
 - Polvora sobre la cazuela de pociones: `PotionCauldronBlockEntity.splash = true` (se guarda con `putBoolean`/`getBooleanOr`, apuesta: `getBooleanOr`);
   la botella de vidrio entrega `Items.SPLASH_POTION` en vez de `Items.POTION`. Si ya era arrojable no se consume.
@@ -69,7 +71,7 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Todo en `PotionCauldronInteraction`; el estado extra vive en el BlockEntity (no cambia el BlockState).
 
 ## Tareas pendientes (en este orden)
-A. **Verificar etapa 8**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
+A. **Verificar etapa 9**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
    (buscar `Mixin apply failed` / `InvalidInjectionException`). 
 C. **End Cities flotantes (etapa 8, SIN probar, no se si compila)**: `world/FloatingEndCityGenerator`. Sin Mixins ni Structure propia: en
    `ServerChunkEvents.CHUNK_LOAD (level, chunk, newlyGenerated)` (apuesta: la firma con 3 parametros) se detecta el chunk "anfitrion" de cada celda de 20x20 chunks

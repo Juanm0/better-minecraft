@@ -19,6 +19,7 @@ import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.structures.EndCityPieces;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
 /**
  * End Cities de vanilla (con End Ships, Shulkers y Elytra) sobre islas flotantes de End Stone en el Overworld (Y 185..215).
@@ -94,13 +95,33 @@ public final class FloatingEndCityGenerator {
 
 		BlockPos base = new BlockPos(cx, top + 1, cz);
 		List<StructurePiece> pieces = new ArrayList<>();
-		EndCityPieces.startHouseTower(level.getServer().getStructureManager(), base, Rotation.getRandom(random), pieces, random);
+		EndCityPieces.startHouseTower(templateManager(level), base, Rotation.getRandom(random), pieces, random);
 		for (StructurePiece piece : pieces) {
 			BoundingBox box = piece.getBoundingBox();
 			piece.postProcess(level, level.structureManager(), level.getChunkSource().getGenerator(), random, box,
-				new ChunkPos(new BlockPos(box.minX(), box.minY(), box.minZ())), base);
+				new ChunkPos(box.minX() >> 4, box.minZ() >> 4), base);
 		}
 		BetterMinecraft.LOGGER.info("End City flotante generada en {}", base);
+	}
+
+	/**
+	 * Obtiene el StructureTemplateManager sin depender del nombre del getter (cambio entre versiones):
+	 * busca por reflexion un metodo publico sin parametros que devuelva ese tipo, primero en el server y luego en el nivel.
+	 */
+	private static StructureTemplateManager templateManager(ServerLevel level) {
+		Object[] holders = {level.getServer(), level};
+		for (Object holder : holders) {
+			for (java.lang.reflect.Method m : holder.getClass().getMethods()) {
+				if (m.getParameterCount() == 0 && m.getReturnType() == StructureTemplateManager.class) {
+					try {
+						return (StructureTemplateManager) m.invoke(holder);
+					} catch (ReflectiveOperationException e) {
+						throw new IllegalStateException("No se pudo obtener StructureTemplateManager", e);
+					}
+				}
+			}
+		}
+		throw new IllegalStateException("No hay metodo que devuelva StructureTemplateManager");
 	}
 
 	/** Isla en forma de cono invertido de End Stone, tope plano en y = top. */
