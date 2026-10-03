@@ -34,5 +34,6 @@ public final class PotionMod {
 			FabricBlockEntityTypeBuilder.create(PotionCauldronBlockEntity::new, POTION_CAULDRON).build()
 		);
 		PotionCauldronInteraction.init();
+		BrewingStandMixing.init();
 	}
 }

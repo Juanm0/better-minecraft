@@ -29,8 +29,9 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
  * Solo se decide al generar un chunk NUEVO, asi que no se repite al reiniciar el mundo.
  */
 public final class FloatingEndCityGenerator {
-	/** Una ciudad por celda de SPACING x SPACING chunks (20 = ~320 bloques). */
-	private static final int SPACING = 20;
+	/** Una ciudad por celda de SPACING x SPACING chunks (56 = ~900 bloques), con CHANCE % de que la celda tenga ciudad. */
+	private static final int SPACING = 56;
+	private static final int CHANCE = 65;
 	private static final Map<ResourceKey<Level>, ArrayDeque<BlockPos>> PENDING = new HashMap<>();
 
 	private FloatingEndCityGenerator() {
@@ -75,6 +76,9 @@ public final class FloatingEndCityGenerator {
 		int sx = Math.floorDiv(chunkX, SPACING);
 		int sz = Math.floorDiv(chunkZ, SPACING);
 		long h = hash(seed, sx, sz);
+		if (Math.floorMod(h >>> 40, 100L) >= CHANCE) {
+			return false;
+		}
 		int offX = 3 + (int) Math.floorMod(h, (long) (SPACING - 6));
 		int offZ = 3 + (int) Math.floorMod(h >>> 20, (long) (SPACING - 6));
 		return chunkX == sx * SPACING + offX && chunkZ == sz * SPACING + offZ;
