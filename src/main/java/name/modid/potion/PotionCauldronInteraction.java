@@ -21,6 +21,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 
@@ -60,12 +61,27 @@ public final class PotionCauldronInteraction {
 				return InteractionResult.SUCCESS;
 			}
 			List<MobEffectInstance> merged = incoming;
-			if (isPotionCauldron && level.getBlockEntity(pos) instanceof PotionCauldronBlockEntity be) {
-				merged = merge(be.getEffects(), incoming);
+			int pours = 1;
+			int fill = 1;
+			if (isPotionCauldron) {
+				fill = Math.min(3, state.getValue(PotionCauldronBlock.LEVEL) + 1);
+				if (level.getBlockEntity(pos) instanceof PotionCauldronBlockEntity be) {
+					merged = merge(be.getEffects(), incoming);
+					pours = be.getPours() + 1;
+				}
+			} else if (state.is(Blocks.WATER_CAULDRON)) {
+				// el agua ya cuenta como nivel: 2 de agua + 1 pocion = 3 botellas
+				fill = Math.min(3, state.getValue(LayeredCauldronBlock.LEVEL) + 1);
 			}
-			level.setBlock(pos, PotionMod.POTION_CAULDRON.defaultBlockState(), 3);
+			int color = (pours >= 2 || merged.size() >= 2)
+				? PotionColors.MIXED
+				: PotionColors.nearest(merged.get(0).getEffect().value().getColor());
+			BlockState newState = PotionMod.POTION_CAULDRON.defaultBlockState()
+				.setValue(PotionCauldronBlock.LEVEL, fill)
+				.setValue(PotionCauldronBlock.COLOR, color);
+			level.setBlock(pos, newState, 3);
 			if (level.getBlockEntity(pos) instanceof PotionCauldronBlockEntity be) {
-				be.setEffects(merged);
+				be.setMix(merged, pours);
 			}
 			level.playSound(null, pos, SoundEvents.BOTTLE_EMPTY, SoundSource.BLOCKS, 1.0F, 1.0F);
 			giveBack(player, held, new ItemStack(Items.GLASS_BOTTLE));
@@ -85,7 +101,12 @@ public final class PotionCauldronInteraction {
 			}
 			ItemStack potion = new ItemStack(Items.POTION);
 			potion.set(DataComponents.POTION_CONTENTS, contents);
-			level.setBlock(pos, Blocks.CAULDRON.defaultBlockState(), 3);
+			int remaining = state.getValue(PotionCauldronBlock.LEVEL) - 1;
+			if (remaining <= 0) {
+				level.setBlock(pos, Blocks.CAULDRON.defaultBlockState(), 3);
+			} else {
+				level.setBlock(pos, state.setValue(PotionCauldronBlock.LEVEL, remaining), 3);
+			}
 			level.playSound(null, pos, SoundEvents.BOTTLE_FILL, SoundSource.BLOCKS, 1.0F, 1.0F);
 			giveBack(player, held, potion);
 			return InteractionResult.SUCCESS;

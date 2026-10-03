@@ -5,7 +5,7 @@ Respondeme en espanol rioplatense. NO me hagas preguntas de confirmacion: decidi
 explicame despues que hiciste y que podria fallar. Yo pruebo y te cuento.
 El proyecto es solo Fabric: no uses ni me pidas instalar NeoForge/Forge (solo se lo lee como referencia).
 
-Te adjunto el zip del proyecto (`better-minecraft-etapa3b.zip`). Descomprimilo y trabaja sobre ese codigo.
+Te adjunto el zip del proyecto (`better-minecraft-etapa5.zip`). Descomprimilo y trabaja sobre ese codigo.
 
 ## Entorno (verificado)
 - Minecraft 26.3, Fabric Loader 0.19.5, Fabric API 0.161.0+26.3, Loom 1.18-SNAPSHOT, Java 25.
@@ -37,43 +37,38 @@ Te adjunto el zip del proyecto (`better-minecraft-etapa3b.zip`). Descomprimilo y
 3. La API de busqueda de codigo de GitHub pide autenticacion: no sirve.
 
 ## Estado actual
-**Etapa 1 (compilo y funciono):**
-- `LapisTiers` + `mixin/EnchantmentMenuMixin`: re-roll de la mesa (3 lapis = vanilla; 4+ = hojas 2..20; nivel requerido =
-  vanilla + hoja-1; se gastan tantos niveles y lapis como `hoja + 2`). Engancha `lambda$slotsChanged$0` y `getEnchantmentList`.
+**Etapa 1 (compila y funciona):** `LapisTiers` + `mixin/EnchantmentMenuMixin`: re-roll de la mesa (3 lapis = vanilla; 4+ = hojas 2..20;
+nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 
-**Etapa 2 (SIN probar; no se si compila):**
-- `dragon/*`, `world/*`: dragon en dos fases con eventos de Fabric (sin Mixins): `DragonFightManager`, `DragonPhaseManager`
-  (bits persistentes via Data Attachment API, `ModAttachments`), `DragonConfig`; 10 pilares nuevos (`SecondaryPillarData`,
-  `EndPillarGenerator`), isla grande (`EndIslandGenerator`); al 50 %: `DragonDeathSequence` (sonido, particulas, XP en 5 tandas =
-  XP vanilla/2 via `DragonExperienceManager`) y `DragonCrystalManager` (10 End Crystals, una vez); fase 2: `DragonDamage`
-  (x1.5 a jugadores) y `DragonWitherAttack` (WitherSkull + nube de Wither).
-- `beacon/BeaconProtectionManager`: en el End quita Wither a jugadores dentro del rango de un Beacon activo.
+**Etapa 2 (compila y funciona, probado en juego):** `dragon/*`, `world/*`, `beacon/*`: dragon en dos fases con eventos de Fabric,
+10 pilares nuevos, isla grande, secuencia de muerte al 50 %, 10 End Crystals, fase 2 (dano x1.5 y ataque Wither), Beacon quita Wither en el End.
 
-**Etapa 3 (SIN probar; nueva):**
-- **B** `src/client/.../mixin/EnchantmentScreenMixin`: envuelve `Component.translatable` (selector regex `"/.*/"`, `require = 0`)
-  y cambia el numero de `container.enchant.lapis.*` y `container.enchant.level.*` por el costo real (`LapisTiers.lapisCost`)
-  cuando hay 4+ lapis. Registrado en `better-minecraft.client.mixins.json`.
-- **D** `potion/*`: cazuela de pociones. `PotionMod.init()` (llamado desde `onInitialize`) registra bloque + BlockEntityType;
-  `PotionCauldronBlock` (BaseEntityBlock), `PotionCauldronBlockEntity` (guarda efectos con ValueInput/ValueOutput),
-  `PotionCauldronInteraction` (por `UseBlockCallback`): pocion con efectos sobre caldero vacio/con agua/de pociones = mezcla los
-  efectos (gana mayor nivel, luego mayor duracion); botella de vidrio sobre la cazuela = una pocion con todos los efectos.
-  Hay blockstate, lang (en_us, es_ar) y loot table (suelta un caldero).
+**Etapa 3/4 (compila y funciona, probado en juego):** `client/mixin/EnchantmentScreenMixin` (costo real en la UI de la mesa) y cazuela de pociones
+(`potion/*`): pocion con efectos sobre caldero = mezcla de efectos (gana mayor nivel, luego mayor duracion); botella de vidrio = pocion con todos los efectos.
+
+**Etapa 5 (SIN probar; no se si compila): visuales y niveles de la cazuela**
+- `PotionCauldronBlock` ahora tiene `LEVEL` (1..3 = cuantas botellas rinde) y `COLOR` (indice 0..15 de `PotionColors`) en el BlockState,
+  y `animateTick` con particulas `ENTITY_EFFECT` del color del liquido.
+- `PotionColors`: paleta fija de 16 colores (0 = violeta de mezcla). `nearest(rgb)` elige el mas cercano al color del efecto (`MobEffect.getColor()`).
+- `PotionCauldronBlockEntity`: guarda ademas `pours` (cuantas pociones se volcaron). `setEffects` fue reemplazado por `setMix(effects, pours)`.
+- `PotionCauldronInteraction`: cada pocion volcada sube 1 nivel (max 3; el agua cuenta: caldero con agua nivel 2 + 1 pocion = 3). 2+ pociones volcadas
+  (o 2+ efectos distintos) = liquido violeta; 1 sola = color de su efecto. Cada botella baja 1 nivel; al llegar a 0 queda caldero vacio.
+- Blockstate `potion_cauldron.json`: multipart por `level` reutilizando los modelos vanilla `minecraft:block/water_cauldron_level1`,
+  `..._level2`, `..._full` (el liquido usa tintindex 0).
+- `client/BetterMinecraftClient`: `BlockColorRegistry.register(List.of(new BlockTintSource(){ colorInWorld, color }), PotionMod.POTION_CAULDRON)`
+  tine el liquido con el color del BlockState (la API se tomo de la doc de Fabric 26.1.2; imports `net.minecraft.client.color.block.BlockTintSource`,
+  `net.minecraft.client.renderer.block.BlockAndTintGetter`, `net.minecraft.util.ARGB`).
+- Apuestas sin verificar contra 26.3: `ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, int)`, `Block.animateTick(BlockState, Level, BlockPos, RandomSource)`,
+  `MobEffect.getColor()`, `LayeredCauldronBlock.LEVEL`, nombres de los modelos vanilla de caldero con agua, y que las clases de tint no cambiaron de paquete en 26.3.
 
 ## Tareas pendientes (en este orden)
-A. **Verificar y arreglar etapas 2 y 3**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad.
-   Primera compilacion de la etapa 3: fallaron 4 cosas y ya se corrigieron en `etapa3b` (esperando el resultado de Actions):
-   `Player.drop(ItemStack, boolean)` no existe (ahora `getInventory().placeItemBackInInventory(stack, Prediction.SERVER_ONLY)`),
-   `Entity.invulnerableTime` es privado (ahora reflexion en `DragonDamage`), y `EnderDragon.setInvulnerable(boolean)` no existe
-   (ahora se bloquea el dano con `ServerLivingEntityEvents.ALLOW_DAMAGE` durante la transicion).
-   Javac puede mostrar errores nuevos despues de corregir estos (aparecen por fases). Dudas que aun no dieron error: tratalas como
-   apuestas hasta que compile.
-   Si el juego se cierra al abrir: te paso `latest.log` (buscar `Mixin apply failed` / `InvalidInjectionException`).
-C. **End Cities en el Overworld sobre islas flotantes de End Stone** (Y >= 180): conservar End Ships, Shulkers y Elytra, y la
-   estructura de vanilla (`EndCityPieces`). Un JSON de estructura con tipo `minecraft:end_city` la pone sobre el terreno, no
-   flotando. Opciones: `Structure` propia en Java que genere una isla (End Stone) y llame a `EndCityPieces.startHouseTower(...)`,
-   o un evento de generacion de chunk. NO escribirlo sin ver `EndCityPieces`/`EndCityStructure`: pedime el artefacto
+A. **Verificar etapa 5**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
+   (buscar `Mixin apply failed` / `InvalidInjectionException`). Si el liquido se ve sin color o con textura rota, revisar los nombres de modelos del blockstate.
+C. **End Cities en el Overworld sobre islas flotantes de End Stone** (Y >= 180) — NO HECHO: conservar End Ships, Shulkers y Elytra y la estructura de vanilla
+   (`EndCityPieces`). Un JSON de estructura `minecraft:end_city` la pone sobre el terreno, no flotando. Opciones: `Structure` propia en Java que genere una isla
+   y llame a `EndCityPieces.startHouseTower(...)`, o evento de generacion de chunk. NO escribirlo sin ver `EndCityPieces`/`EndCityStructure`: pedime el artefacto
    `decompiled-sources` de mi Actions.
-D2. Pendientes menores de la cazuela: item de bloque (pick-block no da nada), modelo con liquido visible, tests en multijugador.
+D2. Pendientes menores de la cazuela: item de bloque (pick-block no da nada), tests en multijugador.
 E. Mejoras opcionales: config en archivo, mensajes al jugador, balance.
 
 ## Reglas

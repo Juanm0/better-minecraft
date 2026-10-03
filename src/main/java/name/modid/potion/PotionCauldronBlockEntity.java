@@ -14,6 +14,8 @@ public class PotionCauldronBlockEntity extends BlockEntity {
 	private static final Codec<List<MobEffectInstance>> EFFECTS_CODEC = MobEffectInstance.CODEC.listOf();
 
 	private List<MobEffectInstance> effects = List.of();
+	/** Cuantas pociones se volcaron en esta mezcla (2+ = liquido violeta). */
+	private int pours = 0;
 
 	public PotionCauldronBlockEntity(BlockPos pos, BlockState state) {
 		super(PotionMod.POTION_CAULDRON_ENTITY, pos, state);
@@ -23,8 +25,13 @@ public class PotionCauldronBlockEntity extends BlockEntity {
 		return effects;
 	}
 
-	public void setEffects(List<MobEffectInstance> effects) {
+	public int getPours() {
+		return pours;
+	}
+
+	public void setMix(List<MobEffectInstance> effects, int pours) {
 		this.effects = List.copyOf(effects);
+		this.pours = pours;
 		this.setChanged();
 	}
 
@@ -32,11 +39,13 @@ public class PotionCauldronBlockEntity extends BlockEntity {
 	public void loadAdditional(ValueInput input) {
 		super.loadAdditional(input);
 		this.effects = input.read("effects", EFFECTS_CODEC).orElse(List.of());
+		this.pours = input.getIntOr("pours", 0);
 	}
 
 	@Override
 	public void saveAdditional(ValueOutput output) {
 		super.saveAdditional(output);
 		output.store("effects", EFFECTS_CODEC, this.effects);
+		output.putInt("pours", this.pours);
 	}
 }

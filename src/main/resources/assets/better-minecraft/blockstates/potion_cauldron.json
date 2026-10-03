@@ -1,5 +1,7 @@
 {
-  "variants": {
-    "": { "model": "minecraft:block/cauldron" }
-  }
+  "multipart": [
+    { "when": { "level": "1" }, "apply": { "model": "minecraft:block/water_cauldron_level1" } },
+    { "when": { "level": "2" }, "apply": { "model": "minecraft:block/water_cauldron_level2" } },
+    { "when": { "level": "3" }, "apply": { "model": "minecraft:block/water_cauldron_full" } }
+  ]
 }
