@@ -5,7 +5,7 @@ Respondeme en espanol rioplatense. NO me hagas preguntas de confirmacion: decidi
 explicame despues que hiciste y que podria fallar. Yo pruebo y te cuento.
 El proyecto es solo Fabric: no uses ni me pidas instalar NeoForge/Forge (solo se lo lee como referencia).
 
-Te adjunto el zip del proyecto (`better-minecraft-etapa6.zip`). Descomprimilo y trabaja sobre ese codigo.
+Te adjunto el zip del proyecto (`better-minecraft-etapa7.zip`). Descomprimilo y trabaja sobre ese codigo.
 
 ## Entorno (verificado)
 - Minecraft 26.3, Fabric Loader 0.19.5, Fabric API 0.161.0+26.3, Loom 1.18-SNAPSHOT, Java 25.
@@ -61,7 +61,7 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Apuestas sin verificar contra 26.3: `ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, int)`, `Block.animateTick(BlockState, Level, BlockPos, RandomSource)`,
   `MobEffect.getColor()`, `LayeredCauldronBlock.LEVEL`, nombres de los modelos vanilla de caldero con agua, y que las clases de tint no cambiaron de paquete en 26.3.
 
-**Etapa 6 (SIN probar; no se si compila): polvora y redstone en la cazuela**
+**Etapa 6/7 (compila; el usuario reporta que polvora y redstone NO hacen nada en el juego; en la etapa 7 se agregaron mensajes en la action bar y un log al arrancar (`etapa 6 (polvora/redstone...`) para diagnosticar; pedirle `latest.log` y que diga que mensaje ve): polvora y redstone en la cazuela**
 - Polvora sobre la cazuela de pociones: `PotionCauldronBlockEntity.splash = true` (se guarda con `putBoolean`/`getBooleanOr`, apuesta: `getBooleanOr`);
   la botella de vidrio entrega `Items.SPLASH_POTION` en vez de `Items.POTION`. Si ya era arrojable no se consume.
 - Redstone: +8 min (9600 ticks) a cada efecto, tope 16 min (19200 ticks). No toca efectos instantaneos (duracion <= 1) ni infinitos; los que ya estan

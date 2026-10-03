@@ -8,6 +8,8 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import name.modid.BetterMinecraft;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Prediction;
@@ -62,8 +64,10 @@ public final class PotionCauldronInteraction {
 				return InteractionResult.SUCCESS;
 			}
 			if (!(level.getBlockEntity(pos) instanceof PotionCauldronBlockEntity be) || be.getEffects().isEmpty()) {
+				player.displayClientMessage(Component.literal("La cazuela no tiene efectos."), true);
 				return InteractionResult.SUCCESS;
 			}
+			BetterMinecraft.LOGGER.info("Cazuela: {} usado en {}", held.getItem(), pos);
 			boolean applied = false;
 			if (held.is(Items.GUNPOWDER)) {
 				if (!be.isSplash()) {
@@ -87,7 +91,15 @@ public final class PotionCauldronInteraction {
 					be.setMix(boosted, be.getPours());
 				}
 			}
+			if (!applied) {
+				player.displayClientMessage(Component.literal(held.is(Items.GUNPOWDER)
+					? "La mezcla ya es arrojable."
+					: "Ningun efecto se puede alargar mas (tope 16 min)."), true);
+			}
 			if (applied) {
+				player.displayClientMessage(Component.literal(held.is(Items.GUNPOWDER)
+					? "La mezcla ahora es arrojable."
+					: "+8 minutos a la mezcla."), true);
 				level.playSound(null, pos, SoundEvents.BOTTLE_FILL, SoundSource.BLOCKS, 1.0F, 1.4F);
 				if (!player.hasInfiniteMaterials()) {
 					held.shrink(1);

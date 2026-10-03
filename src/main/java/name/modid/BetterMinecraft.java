@@ -31,7 +31,7 @@ public class BetterMinecraft implements ModInitializer {
 		BeaconProtectionManager.init();
 		PotionMod.init();
 
-		LOGGER.info("Better Minecraft loaded: enchanting reroll, two-phase dragon, beacon protection, potion cauldron.");
+		LOGGER.info("Better Minecraft etapa 6 (polvora/redstone en cazuela). Loaded: enchanting reroll, two-phase dragon, beacon protection, potion cauldron.");
 	}
 
 	public static Identifier id(String path) {
