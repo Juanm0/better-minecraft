@@ -1,3 +1,6 @@
 {
-  "block.better-minecraft.potion_cauldron": "Potion Cauldron"
+  "block.better-minecraft.potion_cauldron": "Potion Cauldron",
+  "item.better-minecraft.gold_bag": "Gold Sack",
+  "item.better-minecraft.iron_bag": "Iron Sack",
+  "item.better-minecraft.reinforced_iron_bag": "Reinforced Iron Sack"
 }

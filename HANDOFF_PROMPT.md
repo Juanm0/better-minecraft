@@ -5,7 +5,7 @@ Respondeme en espanol rioplatense. NO me hagas preguntas de confirmacion: decidi
 explicame despues que hiciste y que podria fallar. Yo pruebo y te cuento.
 El proyecto es solo Fabric: no uses ni me pidas instalar NeoForge/Forge (solo se lo lee como referencia).
 
-Te adjunto el zip del proyecto (`better-minecraft-etapa16.zip`). Descomprimilo y trabaja sobre ese codigo.
+Te adjunto el zip del proyecto (`better-minecraft-etapa16b.zip`). Descomprimilo y trabaja sobre ese codigo.
 
 ## Entorno (verificado)
 - Minecraft 26.3, Fabric Loader 0.19.5, Fabric API 0.161.0+26.3, Loom 1.18-SNAPSHOT, Java 25.
@@ -61,7 +61,26 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Apuestas sin verificar contra 26.3: `ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, int)`, `Block.animateTick(BlockState, Level, BlockPos, RandomSource)`,
   `MobEffect.getColor()`, `LayeredCauldronBlock.LEVEL`, nombres de los modelos vanilla de caldero con agua, y que las clases de tint no cambiaron de paquete en 26.3.
 
-**Etapa 16 (SIN probar; el usuario probara las etapas 15+16 juntas): pocion en la cazuela solo mezcla**
+**NOTA DE NUMERACION:** el usuario llama "etapa 15" a lo que aqui figura como "Etapa 16", asi que esta entrega es la **16b** y la proxima sera la **17**.
+
+**Etapa 16b (SIN probar, no se si compila): SACOS MEJORADOS (paquete `name.modid.bag`)**
+- Pedido: bundles mas grandes con crafteo evolutivo. 8 lingotes de oro + bundle al centro = **Saco de oro** (cap. 70); 8 de hierro + Saco de oro = **Saco de hierro** (128);
+  filas 1 y 3 de bloques de hierro y fila 2 = bundle, Saco de hierro, bundle = **Saco de hierro mejorado** (2x9 = 18 stacks, como un shulker pero mas chico). Misma interaccion que el bundle.
+  La mejora CONSERVA el contenido.
+- Diseno (sin Mixins, sin tocar el bundle vanilla): 3 items propios `BagItem extends Item` (`gold_bag`, `iron_bag`, `reinforced_iron_bag`), contenido en un componente propio
+  `BagMod.CONTENTS` (`DataComponentType<List<ItemStack>>`, `ItemStack.CODEC.listOf()`). Capacidad por `BagTier(maxWeight, maxStacks)`: peso = cantidad * (64 / maxStackSize), igual que el bundle.
+  No se pueden meter sacos, bundles ni shulker boxes. Interacciones en `BagItem`: `overrideStackedOnOther` (saco en el cursor, clic derecho en slot), `overrideOtherStackedOnMe`
+  (saco en slot, clic derecho con item/vacio en el cursor), `use` (vuelca todo al inventario). Lore actualizada con "Capacidad: x/y" y los primeros items (`ItemLore`).
+- `BagUpgradeRecipe extends CustomRecipe` (receta especial registrada como `better-minecraft:bag_upgrade`, JSON en `data/better-minecraft/recipe/bag_upgrade.json`); el contenido de un bundle vanilla
+  se pasa con `new BundleContents.Mutable(contents)` + `removeOne()`. Los bundles son `ItemTags.BUNDLES`.
+- Assets: texturas 16x16 generadas con PIL (`textures/item/*.png`), `items/*.json` (client item definition) y `models/item/*.json`, lang en_us y es_ar.
+- APUESTAS (compilar y corregir): firmas `overrideStackedOnOther(ItemStack, Slot, ClickAction, Player)` y `overrideOtherStackedOnMe(ItemStack, ItemStack, Slot, ClickAction, Player, SlotAccess)`;
+  `Item.use(Level, Player, InteractionHand)` devolviendo `InteractionResult`; constructor sin argumentos de `CustomRecipe` y `CustomRecipe.Serializer<>(Supplier)`; `assemble(CraftingInput, HolderLookup.Provider)`;
+  `getSerializer()` con tipo `RecipeSerializer<? extends CustomRecipe>`; `SoundEvents.BUNDLE_INSERT/REMOVE_ONE/DROP_CONTENTS`; `ItemTags.BUNDLES`/`SHULKER_BOXES`; `Slot.safeInsert/allowModification/setChanged`;
+  `ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)`; `new ItemLore(List<Component>)`; `BundleContents.Mutable.removeOne()`.
+- Falta/ideas: tooltip grafico del bundle (hoy es lore), seleccion de item con la rueda, receta visible en el libro de recetas, soltar el saco al morir, que los hoppers/dispensers no lo traten raro.
+
+**Etapa 16 (compila y funciona; el usuario la llama "etapa 15"): pocion en la cazuela solo mezcla**
 - Se ELIMINARON de la cazuela la polvora (arrojable) y la redstone (+duracion): esas funciones son solo de la destiladora (`BrewingStandMixing`). La cazuela solo mezcla efectos
   (se puede volcar pociones normales y arrojadizas; la botella de vidrio siempre entrega `Items.POTION`). Se quito `splash` del `PotionCauldronBlockEntity`.
 - Estado: el mod podria estar terminado; falta probar etapas 15+16 en juego. Ideas opcionales: config en archivo, item de bloque (pick-block), tests en multijugador.
@@ -122,7 +141,7 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Todo en `PotionCauldronInteraction`; el estado extra vive en el BlockEntity (no cambia el BlockState).
 
 ## Tareas pendientes (en este orden)
-A. **Verificar etapa 16**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
+A. **Verificar etapa 16b**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
    (buscar `Mixin apply failed` / `InvalidInjectionException`). 
 C. **End Cities flotantes (etapa 8, SIN probar, no se si compila)**: `world/FloatingEndCityGenerator`. Sin Mixins ni Structure propia: en
    `ServerChunkEvents.CHUNK_LOAD (level, chunk, newlyGenerated)` (apuesta: la firma con 3 parametros) se detecta el chunk "anfitrion" de cada celda de 20x20 chunks

@@ -4,6 +4,7 @@ import name.modid.beacon.BeaconProtectionManager;
 import name.modid.dragon.DragonDamage;
 import name.modid.dragon.DragonFightManager;
 import name.modid.potion.PotionMod;
+import name.modid.bag.BagMod;
 import name.modid.world.CartographerTrades;
 import name.modid.world.FloatingEndCityGenerator;
 import net.fabricmc.api.ModInitializer;
@@ -34,6 +35,7 @@ public class BetterMinecraft implements ModInitializer {
 		PotionMod.init();
 		FloatingEndCityGenerator.init();
 		CartographerTrades.init();
+		BagMod.init();
 
 		LOGGER.info("Better Minecraft etapa 8 (End Cities flotantes, cazuela). Loaded: enchanting reroll, two-phase dragon, beacon protection, potion cauldron.");
 	}

@@ -1,3 +1,6 @@
 {
-  "block.better-minecraft.potion_cauldron": "Caldero de pociones"
+  "block.better-minecraft.potion_cauldron": "Caldero de pociones",
+  "item.better-minecraft.gold_bag": "Saco de oro",
+  "item.better-minecraft.iron_bag": "Saco de hierro",
+  "item.better-minecraft.reinforced_iron_bag": "Saco de hierro mejorado"
 }
