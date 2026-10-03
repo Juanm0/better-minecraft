@@ -5,7 +5,7 @@ Respondeme en espanol rioplatense. NO me hagas preguntas de confirmacion: decidi
 explicame despues que hiciste y que podria fallar. Yo pruebo y te cuento.
 El proyecto es solo Fabric: no uses ni me pidas instalar NeoForge/Forge (solo se lo lee como referencia).
 
-Te adjunto el zip del proyecto (`better-minecraft-etapa7.zip`). Descomprimilo y trabaja sobre ese codigo.
+Te adjunto el zip del proyecto (`better-minecraft-etapa8.zip`). Descomprimilo y trabaja sobre ese codigo.
 
 ## Entorno (verificado)
 - Minecraft 26.3, Fabric Loader 0.19.5, Fabric API 0.161.0+26.3, Loom 1.18-SNAPSHOT, Java 25.
@@ -61,7 +61,7 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Apuestas sin verificar contra 26.3: `ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, int)`, `Block.animateTick(BlockState, Level, BlockPos, RandomSource)`,
   `MobEffect.getColor()`, `LayeredCauldronBlock.LEVEL`, nombres de los modelos vanilla de caldero con agua, y que las clases de tint no cambiaron de paquete en 26.3.
 
-**Etapa 6/7 (compila; el usuario reporta que polvora y redstone NO hacen nada en el juego; en la etapa 7 se agregaron mensajes en la action bar y un log al arrancar (`etapa 6 (polvora/redstone...`) para diagnosticar; pedirle `latest.log` y que diga que mensaje ve): polvora y redstone en la cazuela**
+**Etapa 6/7/8 (etapa 7 NO compilaba: `Player.displayClientMessage` no existe; en la 8 se uso `ServerPlayer.sendSystemMessage(Component, true)` (apuesta). Antes: el usuario reporta que polvora y redstone NO hacen nada en el juego; en la etapa 7 se agregaron mensajes en la action bar y un log al arrancar (`etapa 6 (polvora/redstone...`) para diagnosticar; pedirle `latest.log` y que diga que mensaje ve): polvora y redstone en la cazuela**
 - Polvora sobre la cazuela de pociones: `PotionCauldronBlockEntity.splash = true` (se guarda con `putBoolean`/`getBooleanOr`, apuesta: `getBooleanOr`);
   la botella de vidrio entrega `Items.SPLASH_POTION` en vez de `Items.POTION`. Si ya era arrojable no se consume.
 - Redstone: +8 min (9600 ticks) a cada efecto, tope 16 min (19200 ticks). No toca efectos instantaneos (duracion <= 1) ni infinitos; los que ya estan
@@ -69,12 +69,16 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Todo en `PotionCauldronInteraction`; el estado extra vive en el BlockEntity (no cambia el BlockState).
 
 ## Tareas pendientes (en este orden)
-A. **Verificar etapa 6**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
+A. **Verificar etapa 8**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
    (buscar `Mixin apply failed` / `InvalidInjectionException`). 
-C. **End Cities en el Overworld sobre islas flotantes de End Stone** (Y >= 180) — NO HECHO: conservar End Ships, Shulkers y Elytra y la estructura de vanilla
-   (`EndCityPieces`). Un JSON de estructura `minecraft:end_city` la pone sobre el terreno, no flotando. Opciones: `Structure` propia en Java que genere una isla
-   y llame a `EndCityPieces.startHouseTower(...)`, o evento de generacion de chunk. NO escribirlo sin ver `EndCityPieces`/`EndCityStructure`: pedime el artefacto
-   `decompiled-sources` de mi Actions.
+C. **End Cities flotantes (etapa 8, SIN probar, no se si compila)**: `world/FloatingEndCityGenerator`. Sin Mixins ni Structure propia: en
+   `ServerChunkEvents.CHUNK_LOAD (level, chunk, newlyGenerated)` (apuesta: la firma con 3 parametros) se detecta el chunk "anfitrion" de cada celda de 20x20 chunks
+   (hash determinista con la semilla), se encola, y en `END_LEVEL_TICK` se carga el area, se arma una isla de End Stone (Y 185..215, radio 26..33, cono invertido)
+   y se llama `EndCityPieces.startHouseTower(StructureTemplateManager, BlockPos, Rotation, List<StructurePiece>, RandomSource)` (firma tomada de mappings.dev 1.21.11,
+   NO verificada en 26.3) y `piece.postProcess(level, level.structureManager(), generator, random, box, chunkPos, pivot)` por cada pieza (asi vienen End Ship,
+   Shulkers, Elytra y cofres). Apuestas: `ServerLevel.getSeed()`, `MinecraftServer.getStructureManager()`, `BoundingBox.minX()`, `ChunkPos.getMiddleBlockX()`.
+   Si no aparecen ciudades: buscar en `latest.log` "End City flotante generada" o el error; posibles mejoras: persistir celdas hechas, mas rareza, mas variedad de islas.
+   Si el usuario sube el artefacto `decompiled-sources` (EndCityPieces, EndCityStructure) verificar las firmas contra el.
 D2. Pendientes menores de la cazuela: item de bloque (pick-block no da nada), tests en multijugador.
 E. Mejoras opcionales: config en archivo, mensajes al jugador, balance.
 

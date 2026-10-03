@@ -9,6 +9,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import name.modid.BetterMinecraft;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -64,7 +65,7 @@ public final class PotionCauldronInteraction {
 				return InteractionResult.SUCCESS;
 			}
 			if (!(level.getBlockEntity(pos) instanceof PotionCauldronBlockEntity be) || be.getEffects().isEmpty()) {
-				player.displayClientMessage(Component.literal("La cazuela no tiene efectos."), true);
+				msg(player, "La cazuela no tiene efectos.");
 				return InteractionResult.SUCCESS;
 			}
 			BetterMinecraft.LOGGER.info("Cazuela: {} usado en {}", held.getItem(), pos);
@@ -92,14 +93,14 @@ public final class PotionCauldronInteraction {
 				}
 			}
 			if (!applied) {
-				player.displayClientMessage(Component.literal(held.is(Items.GUNPOWDER)
+				msg(player, held.is(Items.GUNPOWDER)
 					? "La mezcla ya es arrojable."
-					: "Ningun efecto se puede alargar mas (tope 16 min)."), true);
+					: "Ningun efecto se puede alargar mas (tope 16 min).");
 			}
 			if (applied) {
-				player.displayClientMessage(Component.literal(held.is(Items.GUNPOWDER)
+				msg(player, held.is(Items.GUNPOWDER)
 					? "La mezcla ahora es arrojable."
-					: "+8 minutos a la mezcla."), true);
+					: "+8 minutos a la mezcla.");
 				level.playSound(null, pos, SoundEvents.BOTTLE_FILL, SoundSource.BLOCKS, 1.0F, 1.4F);
 				if (!player.hasInfiniteMaterials()) {
 					held.shrink(1);
@@ -176,6 +177,13 @@ public final class PotionCauldronInteraction {
 			held.shrink(1);
 		}
 		player.getInventory().placeItemBackInInventory(result, Prediction.SERVER_ONLY);
+	}
+
+	/** Mensaje en la action bar (solo servidor). */
+	private static void msg(Player player, String text) {
+		if (player instanceof ServerPlayer sp) {
+			sp.sendSystemMessage(Component.literal(text), true);
+		}
 	}
 
 	private static boolean isPotion(ItemStack stack) {
