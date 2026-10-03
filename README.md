@@ -33,12 +33,14 @@ Solo para las pociones mezcladas de la cazuela (las de vanilla siguen con las re
 - Muy raras: una por zona de unos 1500 bloques, y no todas las zonas tienen. Solo aparecen en chunks nuevos.
 - Los aldeanos cartografos venden un "Mapa de End City flotante" (16 esmeraldas + 1 brujula) que marca la mas cercana.
 
-## Sacos mejorados (en pruebas)
+## Sacos mejorados
 Versiones grandes del bundle, misma interaccion (clic derecho), y la mejora conserva el contenido:
 - **Saco de oro**: 8 lingotes de oro alrededor + bundle al centro. Capacidad 70.
 - **Saco de hierro**: 8 lingotes de hierro alrededor + saco de oro al centro. Capacidad 128.
 - **Saco de hierro mejorado**: bloques de hierro en las filas 1 y 3; fila 2 = bundle, saco de hierro, bundle. 18 stacks (2 x 9, como un shulker mas chico).
 - No se pueden meter sacos, bundles ni shulkers adentro.
+- Interaccion como el bundle de vanilla: tooltip grafico (grilla de items + barra de capacidad), la **rueda del mouse** sobre el saco
+  (en cualquier inventario) elige que stack sale, y el **clic derecho en el aire suelta UN stack** (el seleccionado o el ultimo que pusiste).
 
 ## Notas de desarrollo
 - Minecraft 26.3, Fabric Loader 0.19.5, Fabric API 0.161.0+26.3, Java 25, sin mappings (nombres de Mojang).

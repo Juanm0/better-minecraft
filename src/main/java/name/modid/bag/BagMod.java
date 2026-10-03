@@ -1,6 +1,11 @@
 package name.modid.bag;
 
 import java.util.List;
+import com.mojang.serialization.Codec;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import name.modid.BetterMinecraft;
 import com.mojang.serialization.MapCodec;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
@@ -18,6 +23,8 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 /** Registro de los sacos mejorados: componente de contenido, 3 items, receta especial de mejora y entradas del creativo. */
 public final class BagMod {
 	public static DataComponentType<List<ItemStack>> CONTENTS;
+	/** Stack seleccionado con la rueda del mouse (ausente = ninguno). */
+	public static DataComponentType<Integer> SELECTED;
 	public static BagItem GOLD_BAG;
 	public static BagItem IRON_BAG;
 	public static BagItem REINFORCED_IRON_BAG;
@@ -32,6 +39,26 @@ public final class BagMod {
 			BetterMinecraft.id("bag_contents"),
 			DataComponentType.<List<ItemStack>>builder().persistent(ItemStack.CODEC.listOf()).build()
 		);
+		SELECTED = Registry.register(
+			BuiltInRegistries.DATA_COMPONENT_TYPE,
+			BetterMinecraft.id("bag_selected"),
+			DataComponentType.<Integer>builder().persistent(Codec.INT).build()
+		);
+		PayloadTypeRegistry.serverboundPlay().register(BagSelectPayload.TYPE, BagSelectPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(BagSelectPayload.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			AbstractContainerMenu menu = player.containerMenu;
+			if (payload.slot() < 0 || payload.slot() >= menu.slots.size()) {
+				return;
+			}
+			ItemStack stack = menu.getSlot(payload.slot()).getItem();
+			if (!(stack.getItem() instanceof BagItem)) {
+				return;
+			}
+			int size = BagContents.read(stack).size();
+			int selected = payload.selected();
+			BagContents.setSelected(stack, selected >= 0 && selected < size ? selected : -1);
+		});
 		GOLD_BAG = registerBag("gold_bag", BagTier.GOLD);
 		IRON_BAG = registerBag("iron_bag", BagTier.IRON);
 		REINFORCED_IRON_BAG = registerBag("reinforced_iron_bag", BagTier.REINFORCED_IRON);

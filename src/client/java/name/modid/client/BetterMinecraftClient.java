@@ -15,6 +15,7 @@ import net.minecraft.world.level.block.state.BlockState;
 public class BetterMinecraftClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
+		BagClient.init();
 		// Tine el liquido de la cazuela (tintindex 0 del modelo water_cauldron) con el color guardado en el BlockState.
 		BlockColorRegistry.register(List.of(new BlockTintSource() {
 			@Override

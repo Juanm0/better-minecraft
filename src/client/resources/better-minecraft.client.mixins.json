@@ -3,6 +3,7 @@
 	"package": "name.modid.client.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
+		"AbstractContainerScreenAccessor",
 		"EnchantmentScreenMixin"
 	],
 	"injectors": {

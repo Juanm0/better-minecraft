@@ -5,7 +5,7 @@ Respondeme en espanol rioplatense. NO me hagas preguntas de confirmacion: decidi
 explicame despues que hiciste y que podria fallar. Yo pruebo y te cuento.
 El proyecto es solo Fabric: no uses ni me pidas instalar NeoForge/Forge (solo se lo lee como referencia).
 
-Te adjunto el zip del proyecto (`better-minecraft-etapa17b.zip`). Descomprimilo y trabaja sobre ese codigo.
+Te adjunto el zip del proyecto (`better-minecraft-etapa19.zip`). Descomprimilo y trabaja sobre ese codigo.
 
 ## Entorno (verificado)
 - Minecraft 26.3, Fabric Loader 0.19.5, Fabric API 0.161.0+26.3, Loom 1.18-SNAPSHOT, Java 25.
@@ -63,7 +63,24 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 
 **NOTA DE NUMERACION:** el usuario llama "etapa 15" a lo que aqui figura como "Etapa 16", asi que esta entrega es la **16b** y la proxima sera la **17**.
 
-**Etapa 17b (SIN probar): `BundleContents.items()` devuelve `ItemStackTemplate`, no `ItemStack`; `BagUpgradeRecipe.toStack` lo convierte por reflexion (metodo sin parametros que devuelve ItemStack; probablemente `create()`). Verificar y reemplazar por la llamada directa.**
+**NUMERACION (usar siempre numeros normales, sin letras): la entrega actual es la 19; la proxima es la 20, y asi.**
+
+**Etapa 19 (SIN probar): HUD y clic derecho de los sacos, como el bundle de vanilla.** Los sacos de la 17b ya compilaban y los crafteos funcionan (probado).
+- Se quito la lore (lista de texto): `BagContents.write` ahora hace `bag.remove(DataComponents.LORE)` (limpia sacos viejos) y `bag.remove(BagMod.SELECTED)`.
+- Tooltip grafico: `BagItem.getTooltipImage` devuelve `BagTooltip` (record comun que implementa `TooltipComponent`); cliente: `client/ClientBagTooltip implements ClientTooltipComponent`
+  (`getWidth/getHeight(Font)`, `extractImage(Font,x,y,w,h,GuiGraphicsExtractor)`, `extractText(GuiGraphicsExtractor,Font,x,y)`), registrado con `ClientTooltipComponentCallback.EVENT`
+  (todo verificado en Fabric API 26.3). Dibuja grilla (4 columnas en los sacos por peso, 6x3 en el de hierro mejorado) con `fill`, `item`, `itemDecorations`, borde blanco en el seleccionado,
+  barra de capacidad (azul, roja si esta llena) y una linea de texto (nombre del seleccionado o "usado/max").
+- Orden: el ultimo stack tocado va al indice 0 (como el bundle de vanilla), `BagContents.take(list, selected)` saca el seleccionado o, si no hay, el indice 0.
+- Rueda del mouse: nuevo componente `BagMod.SELECTED` (`DataComponentType<Integer>`, -1/ausente = ninguno), `BagSelectPayload` (serverbound, `PayloadTypeRegistry.serverboundPlay()`),
+  receptor en `BagMod.init` (`ServerPlayNetworking.registerGlobalReceiver`), y en cliente `BagClient` (`ScreenEvents.AFTER_INIT` + `ScreenMouseEvents.allowMouseScroll`) con
+  `client/mixin/AbstractContainerScreenAccessor` (`@Accessor("hoveredSlot")`, campo protegido confirmado en el parche de NeoForge). No actua en el inventario creativo.
+- Clic derecho en el aire (`BagItem.use`): ya NO vuelca todo; suelta UN stack con `player.drop(stack, true, Prediction.SERVER_ONLY)` (el seleccionado o el ultimo que se puso).
+  Clic izquierdo con la mano vacia sobre un saco quita la seleccion.
+- Apuestas sin compilar: `Player.drop(ItemStack, boolean, Prediction)`, `ClientTooltipComponent` (metodos abstractos exactos), `GuiGraphicsExtractor.item/itemDecorations(Font, ItemStack, int, int)`,
+  `StreamCodec.composite` con `FriendlyByteBuf` registrado en `serverboundPlay()`, `AbstractContainerMenu.slots`.
+
+**Etapa 17b (compilo, sacos probados): `BundleContents.items()` devuelve `ItemStackTemplate`, no `ItemStack`; `BagUpgradeRecipe.toStack` lo convierte por reflexion (metodo sin parametros que devuelve ItemStack; probablemente `create()`). Verificar y reemplazar por la llamada directa.**
 
 **Etapa 17 (compilo con 1 error): correcciones de compilacion de los sacos.** La 16b dio 6 errores; datos reales de 26.3 aprendidos: el paquete de eventos del creativo es
 `net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.X).register(tab -> tab.accept(item))`; `Recipe.assemble(CraftingInput)` NO recibe `HolderLookup.Provider`;
@@ -148,7 +165,7 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Todo en `PotionCauldronInteraction`; el estado extra vive en el BlockEntity (no cambia el BlockState).
 
 ## Tareas pendientes (en este orden)
-A. **Verificar etapa 17b**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
+A. **Verificar etapa 19**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
    (buscar `Mixin apply failed` / `InvalidInjectionException`). 
 C. **End Cities flotantes (etapa 8, SIN probar, no se si compila)**: `world/FloatingEndCityGenerator`. Sin Mixins ni Structure propia: en
    `ServerChunkEvents.CHUNK_LOAD (level, chunk, newlyGenerated)` (apuesta: la firma con 3 parametros) se detecta el chunk "anfitrion" de cada celda de 20x20 chunks

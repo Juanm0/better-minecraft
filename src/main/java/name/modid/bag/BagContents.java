@@ -2,14 +2,15 @@ package name.modid.bag;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.network.chat.Component;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.ItemLore;
 
-/** Logica de contenido de los sacos (lista de ItemStack en el componente BagMod.CONTENTS). */
+/**
+ * Logica de contenido de los sacos (lista de ItemStack en el componente BagMod.CONTENTS).
+ * Igual que el bundle de vanilla: el ultimo stack tocado queda primero (indice 0) y es el que
+ * sale con clic derecho / se suelta, salvo que haya uno seleccionado con la rueda del mouse.
+ */
 public final class BagContents {
 	private BagContents() {
 	}
@@ -25,13 +26,29 @@ public final class BagContents {
 		return out;
 	}
 
+	/** Guarda el contenido. Cualquier cambio de contenido borra la seleccion y la lore vieja. */
 	public static void write(ItemStack bag, BagTier tier, List<ItemStack> list) {
 		List<ItemStack> copy = new ArrayList<>();
 		for (ItemStack s : list) {
 			copy.add(s.copy());
 		}
 		bag.set(BagMod.CONTENTS, copy);
-		refreshLore(bag, tier, copy);
+		bag.remove(BagMod.SELECTED);
+		bag.remove(DataComponents.LORE); // los sacos de versiones anteriores traian una lista de texto
+	}
+
+	/** Indice seleccionado con la rueda (-1 = ninguno). */
+	public static int selected(ItemStack bag) {
+		Integer v = bag.get(BagMod.SELECTED);
+		return v == null ? -1 : v;
+	}
+
+	public static void setSelected(ItemStack bag, int index) {
+		if (index < 0) {
+			bag.remove(BagMod.SELECTED);
+		} else {
+			bag.set(BagMod.SELECTED, index);
+		}
 	}
 
 	/** Peso de un item suelto: 64 / tamano de stack (minimo 1). */
@@ -45,6 +62,15 @@ public final class BagContents {
 			w += s.getCount() * unitWeight(s);
 		}
 		return w;
+	}
+
+	/** Cuanto del saco esta usado (stacks en los sacos por slots, peso en los demas). */
+	public static int used(BagTier tier, List<ItemStack> list) {
+		return tier.maxStacks() > 0 ? list.size() : weight(list);
+	}
+
+	public static int max(BagTier tier) {
+		return tier.maxStacks() > 0 ? tier.maxStacks() : tier.maxWeight();
 	}
 
 	/** No se meten sacos, bundles ni shulker boxes dentro de un saco. */
@@ -64,46 +90,37 @@ public final class BagContents {
 			if (tier.maxWeight() > 0 && weight + unit > tier.maxWeight()) {
 				break;
 			}
-			boolean placed = false;
-			for (ItemStack s : list) {
+			int found = -1;
+			for (int j = 0; j < list.size(); j++) {
+				ItemStack s = list.get(j);
 				if (ItemStack.isSameItemSameComponents(s, source) && s.getCount() < s.getMaxStackSize()) {
-					s.grow(1);
-					placed = true;
+					found = j;
 					break;
 				}
 			}
-			if (!placed) {
+			ItemStack touched;
+			if (found >= 0) {
+				touched = list.remove(found);
+				touched.grow(1);
+			} else {
 				if (tier.maxStacks() > 0 && list.size() >= tier.maxStacks()) {
 					break;
 				}
-				list.add(source.copyWithCount(1));
+				touched = source.copyWithCount(1);
 			}
+			list.add(0, touched); // el ultimo tocado va primero, como en el bundle de vanilla
 			weight += unit;
 			moved++;
 		}
 		return moved;
 	}
 
-	/** Saca el ultimo stack de la lista (vacio si no hay). */
-	public static ItemStack removeLast(List<ItemStack> list) {
+	/** Saca el stack seleccionado; si no hay seleccion, el primero (el ultimo que se coloco). */
+	public static ItemStack take(List<ItemStack> list, int selected) {
 		if (list.isEmpty()) {
 			return ItemStack.EMPTY;
 		}
-		return list.remove(list.size() - 1);
-	}
-
-	public static void refreshLore(ItemStack bag, BagTier tier, List<ItemStack> list) {
-		List<Component> lines = new ArrayList<>();
-		String capacity = tier.maxStacks() > 0 ? list.size() + "/" + tier.maxStacks() + " slots" : weight(list) + "/" + tier.maxWeight();
-		lines.add(Component.literal("Capacidad: " + capacity).withStyle(ChatFormatting.GRAY));
-		int shown = 0;
-		for (ItemStack s : list) {
-			if (shown++ >= 6) {
-				lines.add(Component.literal("...").withStyle(ChatFormatting.DARK_GRAY));
-				break;
-			}
-			lines.add(Component.literal("- ").append(s.getHoverName()).append(" x" + s.getCount()).withStyle(ChatFormatting.DARK_GRAY));
-		}
-		bag.set(DataComponents.LORE, new ItemLore(lines));
+		int index = selected >= 0 && selected < list.size() ? selected : 0;
+		return list.remove(index);
 	}
 }
