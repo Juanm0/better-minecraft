@@ -2,7 +2,9 @@ package name.modid.bag;
 
 import java.util.List;
 import name.modid.BetterMinecraft;
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+import com.mojang.serialization.MapCodec;
+import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -11,7 +13,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.CustomRecipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 
 /** Registro de los sacos mejorados: componente de contenido, 3 items, receta especial de mejora y entradas del creativo. */
@@ -37,12 +38,12 @@ public final class BagMod {
 		UPGRADE_SERIALIZER = Registry.register(
 			BuiltInRegistries.RECIPE_SERIALIZER,
 			BetterMinecraft.id("bag_upgrade"),
-			new CustomRecipe.Serializer<>(BagUpgradeRecipe::new)
+			new RecipeSerializer<>(MapCodec.unit(BagUpgradeRecipe::new), StreamCodec.unit(new BagUpgradeRecipe()))
 		);
-		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(entries -> {
-			entries.accept(GOLD_BAG);
-			entries.accept(IRON_BAG);
-			entries.accept(REINFORCED_IRON_BAG);
+		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(tab -> {
+			tab.accept(GOLD_BAG);
+			tab.accept(IRON_BAG);
+			tab.accept(REINFORCED_IRON_BAG);
 		});
 	}
 

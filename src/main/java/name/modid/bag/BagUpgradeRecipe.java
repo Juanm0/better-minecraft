@@ -2,7 +2,6 @@ package name.modid.bag;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.Item;
@@ -70,7 +69,7 @@ public class BagUpgradeRecipe extends CustomRecipe {
 	}
 
 	@Override
-	public ItemStack assemble(CraftingInput input, HolderLookup.Provider registries) {
+	public ItemStack assemble(CraftingInput input) {
 		Match match = match(input);
 		if (match == null) {
 			return ItemStack.EMPTY;
@@ -85,11 +84,8 @@ public class BagUpgradeRecipe extends CustomRecipe {
 			} else {
 				BundleContents bundle = source.get(DataComponents.BUNDLE_CONTENTS);
 				if (bundle != null) {
-					BundleContents.Mutable mutable = new BundleContents.Mutable(bundle);
-					ItemStack s = mutable.removeOne();
-					while (!s.isEmpty()) {
+					for (ItemStack s : bundle.items()) {
 						BagContents.insert(match.tier(), contents, s);
-						s = mutable.removeOne();
 					}
 				}
 			}

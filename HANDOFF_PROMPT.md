@@ -5,7 +5,7 @@ Respondeme en espanol rioplatense. NO me hagas preguntas de confirmacion: decidi
 explicame despues que hiciste y que podria fallar. Yo pruebo y te cuento.
 El proyecto es solo Fabric: no uses ni me pidas instalar NeoForge/Forge (solo se lo lee como referencia).
 
-Te adjunto el zip del proyecto (`better-minecraft-etapa16b.zip`). Descomprimilo y trabaja sobre ese codigo.
+Te adjunto el zip del proyecto (`better-minecraft-etapa17.zip`). Descomprimilo y trabaja sobre ese codigo.
 
 ## Entorno (verificado)
 - Minecraft 26.3, Fabric Loader 0.19.5, Fabric API 0.161.0+26.3, Loom 1.18-SNAPSHOT, Java 25.
@@ -63,7 +63,12 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 
 **NOTA DE NUMERACION:** el usuario llama "etapa 15" a lo que aqui figura como "Etapa 16", asi que esta entrega es la **16b** y la proxima sera la **17**.
 
-**Etapa 16b (SIN probar, no se si compila): SACOS MEJORADOS (paquete `name.modid.bag`)**
+**Etapa 17 (SIN probar): correcciones de compilacion de los sacos.** La 16b dio 6 errores; datos reales de 26.3 aprendidos: el paquete de eventos del creativo es
+`net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.X).register(tab -> tab.accept(item))`; `Recipe.assemble(CraftingInput)` NO recibe `HolderLookup.Provider`;
+`CustomRecipe.Serializer` no existe (se usa `new RecipeSerializer<>(MapCodec.unit(Receta::new), StreamCodec.unit(new Receta()))`); `BundleContents.Mutable` ya no tiene constructor desde `BundleContents`
+(ahora se leen los items con `bundle.items()`, apuesta). README.md actualizado con todas las funciones. El resto de los items de apuestas de la 16b sigue vigente.
+
+**Etapa 16b (compilo con errores, corregidos en la 17): SACOS MEJORADOS (paquete `name.modid.bag`)**
 - Pedido: bundles mas grandes con crafteo evolutivo. 8 lingotes de oro + bundle al centro = **Saco de oro** (cap. 70); 8 de hierro + Saco de oro = **Saco de hierro** (128);
   filas 1 y 3 de bloques de hierro y fila 2 = bundle, Saco de hierro, bundle = **Saco de hierro mejorado** (2x9 = 18 stacks, como un shulker pero mas chico). Misma interaccion que el bundle.
   La mejora CONSERVA el contenido.
@@ -141,7 +146,7 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Todo en `PotionCauldronInteraction`; el estado extra vive en el BlockEntity (no cambia el BlockState).
 
 ## Tareas pendientes (en este orden)
-A. **Verificar etapa 16b**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
+A. **Verificar etapa 17**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
    (buscar `Mixin apply failed` / `InvalidInjectionException`). 
 C. **End Cities flotantes (etapa 8, SIN probar, no se si compila)**: `world/FloatingEndCityGenerator`. Sin Mixins ni Structure propia: en
    `ServerChunkEvents.CHUNK_LOAD (level, chunk, newlyGenerated)` (apuesta: la firma con 3 parametros) se detecta el chunk "anfitrion" de cada celda de 20x20 chunks
