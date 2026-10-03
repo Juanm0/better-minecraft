@@ -1,6 +1,9 @@
 package name.modid.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import name.modid.LapisTiers;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.EnchantmentMenu;
@@ -36,12 +39,7 @@ public abstract class EnchantmentMenuMixin {
 		return lapis.is(Items.LAPIS_LAZULI) ? lapis.getCount() : 0;
 	}
 
-	/*
-	 * Re-roll: la mesa siembra su generador aleatorio con la semilla del menu.
-	 * Mezclamos la hoja en esa semilla, tanto al calcular los niveles requeridos
-	 * como al elegir los encantamientos, asi cada cantidad de lapis da otro catalogo.
-	 * (Fabric API apunta a este mismo lambda en 26.3, asi que el nombre es el correcto.)
-	 */
+	/** Re-roll de los niveles requeridos: la hoja se mezcla en la semilla. */
 	@ModifyArg(
 		method = "lambda$slotsChanged$0",
 		at = @At(value = "INVOKE", target = "Lnet/minecraft/util/RandomSource;setSeed(J)V"),
@@ -51,6 +49,7 @@ public abstract class EnchantmentMenuMixin {
 		return LapisTiers.seedFor(seed, LapisTiers.sheet(bm$lapisCount()));
 	}
 
+	/** Re-roll de los encantamientos de cada fila. */
 	@ModifyArg(
 		method = "getEnchantmentList",
 		at = @At(value = "INVOKE", target = "Lnet/minecraft/util/RandomSource;setSeed(J)V"),
@@ -60,7 +59,28 @@ public abstract class EnchantmentMenuMixin {
 		return LapisTiers.seedFor(seed, LapisTiers.sheet(bm$lapisCount()));
 	}
 
-	/** Antes de encantar: verifica que el jugador tenga los niveles del costo de la hoja. */
+	/**
+	 * Sube el nivel requerido (el numero grande que muestra la mesa) en cada hoja:
+	 * 30, 31, 32... Las filas que vanilla deja vacias (valor menor a slot + 1) siguen vacias.
+	 * El valor sincronizado con el cliente es este, asi que el rojo/blanco de la mesa es correcto.
+	 */
+	@WrapOperation(
+		method = "lambda$slotsChanged$0",
+		at = @At(
+			value = "INVOKE",
+			target = "Lnet/minecraft/world/item/enchantment/EnchantmentHelper;getEnchantmentCost(Lnet/minecraft/util/RandomSource;IILnet/minecraft/world/item/ItemStack;)I"
+		)
+	)
+	private int bm$scaleRequiredLevel(RandomSource random, int slot, int bookcases, ItemStack stack, Operation<Integer> original) {
+		int cost = original.call(random, slot, bookcases, stack);
+		int count = bm$lapisCount();
+		if (!LapisTiers.isActive(count) || cost < slot + 1) {
+			return cost;
+		}
+		return LapisTiers.requiredLevel(cost, LapisTiers.sheet(count));
+	}
+
+	/** Antes de encantar: hacen falta tantos niveles como lapis se van a gastar. */
 	@Inject(method = "clickMenuButton", at = @At("HEAD"), cancellable = true)
 	private void bm$checkPayment(Player player, int id, CallbackInfoReturnable<Boolean> cir) {
 		this.bm$pending = false;
@@ -71,20 +91,18 @@ public abstract class EnchantmentMenuMixin {
 		if (!LapisTiers.isActive(count)) {
 			return; // 3 lapis o menos: vanilla puro
 		}
-		int sheet = LapisTiers.sheet(count);
-		int levelCost = LapisTiers.levelCost(sheet, id);
-		if (player.experienceLevel < levelCost) {
+		int consumed = LapisTiers.lapisCost(LapisTiers.sheet(count));
+		if (player.experienceLevel < consumed) {
 			cir.setReturnValue(false);
 			return;
 		}
-		// Vanilla cobra (id + 1) niveles y (id + 1) lapis. La diferencia la cobramos al final.
+		// Vanilla cobra (id + 1) niveles y (id + 1) lapis. La diferencia se cobra al final.
 		this.bm$pending = true;
 		this.bm$lapisBefore = count;
-		this.bm$extraLevels = levelCost - (id + 1);
-		this.bm$extraLapis = LapisTiers.lapisCost(sheet) - (id + 1);
+		this.bm$extraLevels = consumed - (id + 1);
+		this.bm$extraLapis = consumed - (id + 1);
 	}
 
-	/** Despues de encantar: cobra la diferencia de niveles y de lapis. */
 	@Inject(method = "clickMenuButton", at = @At("RETURN"))
 	private void bm$chargeExtra(Player player, int id, CallbackInfoReturnable<Boolean> cir) {
 		if (!this.bm$pending) {

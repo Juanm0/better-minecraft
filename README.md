@@ -1,13 +1,20 @@
 # Better Minecraft (Fabric 26.3)
 
-## Etapa 1 - Mesa de encantamientos (lista para compilar)
-- 3 lapis o menos: mesa de vanilla.
-- 4 lapis o mas: cada lapis extra cambia todo el catalogo y sube el costo en niveles.
-  Hoja 1: 1-2-3, hoja 2 (4 lapis): 4-5-6, ... hoja 20 (22 lapis): 58-59-60.
-- Al encantar se gastan 4 lapis en la hoja 2, 5 en la 3, ... 22 en la hoja 20.
-- El nivel requerido (maximo 30 con 15 estantes) sigue siendo el de vanilla.
-- Limitacion conocida: los numeros del tooltip de la mesa siguen mostrando 1-2-3 (falta la parte del cliente).
+## Mesa de encantamientos (v2)
+- 3 lapis o menos: vanilla puro.
+- 4 lapis = hoja 2, ... 22 lapis = hoja 20 (tope). Cada hoja cambia todo el catalogo.
+- Nivel requerido de cada fila = valor vanilla + (hoja - 1): la fila 3 pasa de 30 a 31, 32...
+- Se gastan tantos niveles de XP como lapis (4 y 4 en la hoja 2, 22 y 22 en la hoja 20).
+- El numero grande que muestra la mesa es el requisito real. Los numeros chicos del tooltip
+  (niveles/lapis a gastar) siguen mostrando 1-2-3: falta la parte del cliente.
+
+## Ender Dragon en dos fases (solo en el End, sin Mixins)
+- Fase 1: vanilla puro. Al comenzar la pelea se construyen 10 pilares nuevos y se agranda la isla.
+- 50 % de vida: transicion (una sola vez): sonido/explosiones de muerte, 5 tandas de orbes de XP
+  (50 % de la XP de muerte vanilla) y el dragon es invulnerable durante 10 s.
+- Fase 2: aparecen 10 End Crystals nuevos (2 pilares con jaula), mas dano fisico y ataque de Wither.
+- Beacon activo (piramide valida + rayo libre) en el End: quita Wither a los jugadores en su rango.
+- Todos los numeros de balance estan en `dragon/DragonConfig.java`.
 
 ## Pendiente
-- `pending/potion_prototype`: cazuela de pociones (prototipo que no compila, ver LEEME.txt).
-- Ender Dragon en dos fases, pilares nuevos, End Cities en el Overworld, Beacon contra el Wither.
+Ver HANDOFF_PROMPT.md (End Cities en el Overworld, cazuela de pociones, tooltip de la mesa).

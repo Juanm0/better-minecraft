@@ -1,5 +1,8 @@
 package name.modid;
 
+import name.modid.beacon.BeaconProtectionManager;
+import name.modid.dragon.DragonDamage;
+import name.modid.dragon.DragonFightManager;
 import net.fabricmc.api.ModInitializer;
 
 import net.minecraft.resources.Identifier;
@@ -21,7 +24,12 @@ public class BetterMinecraft implements ModInitializer {
 		// However, some things (like resources) may still be uninitialized.
 		// Proceed with mild caution.
 
-		LOGGER.info("Better Minecraft: enchanting reroll loaded.");
+		ModAttachments.init();
+		DragonFightManager.init();
+		DragonDamage.init();
+		BeaconProtectionManager.init();
+
+		LOGGER.info("Better Minecraft loaded: enchanting reroll, two-phase dragon, beacon protection.");
 	}
 
 	public static Identifier id(String path) {
