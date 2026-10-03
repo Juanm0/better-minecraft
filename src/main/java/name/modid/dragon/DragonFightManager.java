@@ -32,6 +32,14 @@ public final class DragonFightManager {
 				DragonPhaseManager.resetFightState(level);
 			}
 		});
+		// Durante la transicion del 50 % (iniciada y sin fase 2) el dragon no recibe dano: asi no muere antes de tiempo.
+		ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
+			if (entity instanceof EnderDragon && entity.level() instanceof ServerLevel level && level.dimension() == Level.END) {
+				return !(DragonPhaseManager.has(level, DragonPhaseManager.TRANSITION_STARTED)
+					&& !DragonPhaseManager.has(level, DragonPhaseManager.PHASE2));
+			}
+			return true;
+		});
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> reset());
 	}
 
@@ -67,7 +75,7 @@ public final class DragonFightManager {
 			&& dragon.getHealth() <= dragon.getMaxHealth() * DragonConfig.PHASE2_HEALTH_FRACTION) {
 			DragonPhaseManager.add(level, DragonPhaseManager.TRANSITION_STARTED);
 			DragonPhaseManager.setTransitionTick(level, 0);
-			dragon.setInvulnerable(true); // el dragon no muere durante la transicion
+			// el dragon no recibe dano durante la transicion: ver el evento ALLOW_DAMAGE de init()
 		}
 
 		// 3) Transicion en curso.
@@ -77,7 +85,6 @@ public final class DragonFightManager {
 			DragonDeathSequence.tick(level, dragon, t);
 			if (t >= DragonConfig.TRANSITION_TICKS) {
 				DragonPhaseManager.add(level, DragonPhaseManager.PHASE2);
-				dragon.setInvulnerable(false);
 			} else {
 				DragonPhaseManager.setTransitionTick(level, t + 1);
 			}

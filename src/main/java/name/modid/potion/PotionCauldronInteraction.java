@@ -10,6 +10,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Prediction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.effect.MobEffect;
@@ -92,14 +93,12 @@ public final class PotionCauldronInteraction {
 		return InteractionResult.PASS;
 	}
 
-	/** Gasta 1 del item en mano (salvo creativo) y entrega el resultado al inventario o al piso. */
+	/** Gasta 1 del item en mano (salvo creativo) y entrega el resultado al inventario (o lo tira al piso si no entra). */
 	private static void giveBack(Player player, ItemStack held, ItemStack result) {
 		if (!player.hasInfiniteMaterials()) {
 			held.shrink(1);
 		}
-		if (!player.getInventory().add(result)) {
-			player.drop(result, false);
-		}
+		player.getInventory().placeItemBackInInventory(result, Prediction.SERVER_ONLY);
 	}
 
 	private static boolean isPotion(ItemStack stack) {
