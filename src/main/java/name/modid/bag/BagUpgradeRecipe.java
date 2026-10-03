@@ -45,6 +45,23 @@ public class BagUpgradeRecipe extends CustomRecipe {
 		return null;
 	}
 
+	/** En 26.3 el bundle guarda ItemStackTemplate: se convierte por reflexion (metodo publico sin parametros que devuelve ItemStack). */
+	private static ItemStack toStack(Object entry) {
+		if (entry instanceof ItemStack stack) {
+			return stack;
+		}
+		for (java.lang.reflect.Method m : entry.getClass().getMethods()) {
+			if (m.getParameterCount() == 0 && m.getReturnType() == ItemStack.class) {
+				try {
+					return (ItemStack) m.invoke(entry);
+				} catch (ReflectiveOperationException e) {
+					break;
+				}
+			}
+		}
+		return ItemStack.EMPTY;
+	}
+
 	private static boolean ring(CraftingInput input, Item item) {
 		for (int i = 0; i < 9; i++) {
 			if (i != 4 && !input.getItem(i).is(item)) {
@@ -84,8 +101,11 @@ public class BagUpgradeRecipe extends CustomRecipe {
 			} else {
 				BundleContents bundle = source.get(DataComponents.BUNDLE_CONTENTS);
 				if (bundle != null) {
-					for (ItemStack s : bundle.items()) {
-						BagContents.insert(match.tier(), contents, s);
+					for (Object entry : bundle.items()) {
+						ItemStack s = toStack(entry);
+						if (!s.isEmpty()) {
+							BagContents.insert(match.tier(), contents, s);
+						}
 					}
 				}
 			}
