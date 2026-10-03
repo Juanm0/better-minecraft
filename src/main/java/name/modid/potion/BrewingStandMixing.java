@@ -5,6 +5,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import name.modid.BetterMinecraft;
@@ -31,7 +35,7 @@ import net.minecraft.world.level.block.entity.BrewingStandBlockEntity;
 public final class BrewingStandMixing {
 	public static final int MAX_DURATION = 16 * 60 * 20;
 	public static final int BONUS = 8 * 60 * 20;
-	private static final int BREW_TICKS = 400;
+	private static final int BREW_TICKS = 200;
 	private static final int INGREDIENT_SLOT = 3;
 
 	private static final List<BrewingStandBlockEntity> TRACKED = new ArrayList<>();
@@ -43,11 +47,26 @@ public final class BrewingStandMixing {
 
 	public static void init() {
 		ServerTickEvents.END_LEVEL_TICK.register(BrewingStandMixing::tick);
+		// Registro directo: al abrir un soporte se lo rastrea aunque el escaneo no lo haya encontrado todavia.
+		UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
+			if (!level.isClientSide() && level.getBlockEntity(hit.getBlockPos()) instanceof BrewingStandBlockEntity stand && !TRACKED.contains(stand)) {
+				TRACKED.add(stand);
+			}
+			return InteractionResult.PASS;
+		});
+	}
+
+	/** Mensaje en la action bar al jugador mas cercano (<= 8 bloques). */
+	private static void notifyNear(ServerLevel level, BlockPos pos, String text) {
+		Player player = level.getNearestPlayer(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 8.0, false);
+		if (player instanceof ServerPlayer sp) {
+			sp.sendSystemMessage(Component.literal(text), true);
+		}
 	}
 
 	/** Cada segundo busca soportes para pociones en los chunks cercanos a los jugadores (sin depender de eventos de carga). */
 	private static void scan(ServerLevel level) {
-		TRACKED.removeIf(stand -> stand.getLevel() == level);
+		TRACKED.removeIf(stand -> stand.isRemoved());
 		for (ServerPlayer player : level.players()) {
 			int pcx = player.blockPosition().getX() >> 4;
 			int pcz = player.blockPosition().getZ() >> 4;
@@ -84,6 +103,7 @@ public final class BrewingStandMixing {
 				PROGRESS.remove(stand);
 				ItemStack ing = stand.getItem(INGREDIENT_SLOT);
 				if ((ing.is(Items.GUNPOWDER) || ing.is(Items.REDSTONE)) && LOGGED.add(stand)) {
+					notifyNear(level, stand.getBlockPos(), "Destiladora: no hay pociones mezcladas aplicables (ver latest.log)");
 					BetterMinecraft.LOGGER.info("Soporte {}: ingrediente {} pero ninguna botella aplicable; slot0={} contenido={}",
 						stand.getBlockPos(), ing.getItem(), stand.getItem(0), stand.getItem(0).get(DataComponents.POTION_CONTENTS));
 				}
@@ -92,6 +112,7 @@ public final class BrewingStandMixing {
 			int progress = PROGRESS.getOrDefault(stand, 0) + 1;
 			if (progress == 1) {
 				BetterMinecraft.LOGGER.info("Soporte de pociones en {} empezo a procesar pociones mezcladas", stand.getBlockPos());
+				notifyNear(level, stand.getBlockPos(), "Destiladora: mezclando... (10 s)");
 			}
 			if (progress < BREW_TICKS) {
 				PROGRESS.put(stand, progress);
@@ -136,6 +157,7 @@ public final class BrewingStandMixing {
 			stand.setChanged();
 			BlockPos pos = stand.getBlockPos();
 			level.playSound(null, pos, SoundEvents.BOTTLE_FILL, SoundSource.BLOCKS, 1.0F, 1.2F);
+			notifyNear(level, pos, gunpowder ? "Destiladora: pociones arrojables listas" : "Destiladora: duracion aumentada");
 		}
 	}
 

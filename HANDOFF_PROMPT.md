@@ -5,7 +5,7 @@ Respondeme en espanol rioplatense. NO me hagas preguntas de confirmacion: decidi
 explicame despues que hiciste y que podria fallar. Yo pruebo y te cuento.
 El proyecto es solo Fabric: no uses ni me pidas instalar NeoForge/Forge (solo se lo lee como referencia).
 
-Te adjunto el zip del proyecto (`better-minecraft-etapa12.zip`). Descomprimilo y trabaja sobre ese codigo.
+Te adjunto el zip del proyecto (`better-minecraft-etapa13.zip`). Descomprimilo y trabaja sobre ese codigo.
 
 ## Entorno (verificado)
 - Minecraft 26.3, Fabric Loader 0.19.5, Fabric API 0.161.0+26.3, Loom 1.18-SNAPSHOT, Java 25.
@@ -61,7 +61,14 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Apuestas sin verificar contra 26.3: `ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, int)`, `Block.animateTick(BlockState, Level, BlockPos, RandomSource)`,
   `MobEffect.getColor()`, `LayeredCauldronBlock.LEVEL`, nombres de los modelos vanilla de caldero con agua, y que las clases de tint no cambiaron de paquete en 26.3.
 
-**Etapa 12 (SIN probar, no se si compila):**
+**Etapa 13 (SIN probar, no se si compila): destiladora (brewing stand)**
+- El cartografo de la etapa 12 FUNCIONA (probado). End Cities OK. Lo unico que falla: `BrewingStandMixing` no convertia las pociones mezcladas (ni polvora ni redstone), causa NO identificada.
+- Cambios: tiempo 10 s (`BREW_TICKS = 200`); ademas del escaneo (ahora solo agrega, no borra) se rastrea el soporte en `UseBlockCallback` al abrirlo; mensajes en la action bar
+  ("Destiladora: mezclando... / lista / duracion aumentada / no hay pociones mezcladas aplicables") y logs "Soporte ...". Pedir al usuario que diga que mensaje ve o el `latest.log`.
+  Sospechosos si dice "no hay pociones mezcladas aplicables": `isMixed` (`PotionContents.potion().isEmpty() && hasEffects()`). Si no sale ningun mensaje: no se rastrea o `canProcess` no corre.
+  Plan B robusto si esto falla: Mixin (con `require = 0`) a `PotionBrewing.hasMix`/`mix` para usar el flujo vanilla (combustible, burbujas).
+
+**Etapa 12 (compila y funciona):**
 - End Cities aun mas raras: `SPACING = 96`, `CHANCE = 60` %, anfitrion en la mitad central de la celda (ciudades vecinas a >= 48 chunks) y dedupe en memoria (`DONE`).
 - F HECHO: `world/CartographerTrades`. `UseEntityCallback` (servidor): si la entidad es `Merchant` y su profesion (leida por REFLEXION: `getVillagerData().profession()` -> `Holder.unwrapKey()` path "cartographer",
   asi no depende del paquete de Villager en 26.3) y aun no tiene la oferta, agrega a `merchant.getOffers()` una `MerchantOffer(ItemCost(EMERALD,16), Optional.of(ItemCost(COMPASS,1)), mapa, 0, 2, 25, 0.2F)`.
@@ -98,7 +105,7 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Todo en `PotionCauldronInteraction`; el estado extra vive en el BlockEntity (no cambia el BlockState).
 
 ## Tareas pendientes (en este orden)
-A. **Verificar etapa 12**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
+A. **Verificar etapa 13**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
    (buscar `Mixin apply failed` / `InvalidInjectionException`). 
 C. **End Cities flotantes (etapa 8, SIN probar, no se si compila)**: `world/FloatingEndCityGenerator`. Sin Mixins ni Structure propia: en
    `ServerChunkEvents.CHUNK_LOAD (level, chunk, newlyGenerated)` (apuesta: la firma con 3 parametros) se detecta el chunk "anfitrion" de cada celda de 20x20 chunks
