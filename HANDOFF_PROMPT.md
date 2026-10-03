@@ -5,7 +5,7 @@ Respondeme en espanol rioplatense. NO me hagas preguntas de confirmacion: decidi
 explicame despues que hiciste y que podria fallar. Yo pruebo y te cuento.
 El proyecto es solo Fabric: no uses ni me pidas instalar NeoForge/Forge (solo se lo lee como referencia).
 
-Te adjunto el zip del proyecto (`better-minecraft-etapa11.zip`). Descomprimilo y trabaja sobre ese codigo.
+Te adjunto el zip del proyecto (`better-minecraft-etapa12.zip`). Descomprimilo y trabaja sobre ese codigo.
 
 ## Entorno (verificado)
 - Minecraft 26.3, Fabric Loader 0.19.5, Fabric API 0.161.0+26.3, Loom 1.18-SNAPSHOT, Java 25.
@@ -61,15 +61,22 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Apuestas sin verificar contra 26.3: `ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, int)`, `Block.animateTick(BlockState, Level, BlockPos, RandomSource)`,
   `MobEffect.getColor()`, `LayeredCauldronBlock.LEVEL`, nombres de los modelos vanilla de caldero con agua, y que las clases de tint no cambiaron de paquete en 26.3.
 
-**Etapa 11 (SIN probar, no se si compila):**
+**Etapa 12 (SIN probar, no se si compila):**
+- End Cities aun mas raras: `SPACING = 96`, `CHANCE = 60` %, anfitrion en la mitad central de la celda (ciudades vecinas a >= 48 chunks) y dedupe en memoria (`DONE`).
+- F HECHO: `world/CartographerTrades`. `UseEntityCallback` (servidor): si la entidad es `Merchant` y su profesion (leida por REFLEXION: `getVillagerData().profession()` -> `Holder.unwrapKey()` path "cartographer",
+  asi no depende del paquete de Villager en 26.3) y aun no tiene la oferta, agrega a `merchant.getOffers()` una `MerchantOffer(ItemCost(EMERALD,16), Optional.of(ItemCost(COMPASS,1)), mapa, 0, 2, 25, 0.2F)`.
+  El mapa: `MapItem.create(level, x, z, (byte)2, true, true)` centrado en `FloatingEndCityGenerator.nearestCity(...)`, `MapItem.renderBiomePreviewMap`, `MapItemSavedData.addTargetDecoration(map, pos, "+", MapDecorationTypes.RED_X)`,
+  nombre "Mapa de End City flotante". Se agrega la primera vez que el jugador interactua con el cartografo (se guarda con el aldeano). Apuestas: `MerchantOffer` de 7 args, `ItemCost`, `MapItem.create`,
+  `addTargetDecoration`, `MapDecorationTypes.RED_X`, `UseEntityCallback`. Los trades de vanilla 26.1 son data-driven (`villager_trade` / `trade_set`) pero no se pueden apuntar a End Cities propias (no son una Structure registrada).
+- Pendiente: soporte para pociones (redstone +8 min) sigue sin confirmarse que funcione; revisar `latest.log` ("Soporte ..."). La polvora/arrojable ya no es prioridad (el usuario dijo que no hace falta).
+
+**Etapa 11:**
 - Etapa 10 compilo pero el soporte para pociones NO hacia nada en el juego (ni polvora ni redstone). Se rehizo `BrewingStandMixing`: ya no depende de
   `ServerBlockEntityEvents`; cada 20 ticks escanea los chunks a +-4 de cada jugador (`getChunkNow` + `LevelChunk.getBlockEntities()`) y rastrea los soportes.
   Hay logs INFO: "empezo a procesar pociones mezcladas" (funciona) o "ingrediente X pero ninguna botella aplicable; slot0=... contenido=..." (la deteccion
   `isMixed` falla: pedirle el `latest.log`; sospechoso: `PotionContents.potion().isEmpty()`). Redstone: cada botella se procesa por separado y cada efecto sube +8 min
   con tope 16 (10 min -> 16). Los que estan en el tope no cambian; si ninguna botella cambia no se gasta.
 - End Cities mas raras: `SPACING = 80`, `CHANCE = 85` % (como mansiones). `FloatingEndCityGenerator.nearestCity(seed, x, z)` devuelve la mas cercana (determinista).
-- PENDIENTE F: cartografo que venda un mapa a la End City flotante mas cercana (usar `nearestCity`). NO hecho: en 26.x las ofertas de aldeanos cambiaron
-  (revisar docs de Fabric `TradeOfferHelper`/trades data-driven antes de escribir nada). El mapa se arma con `MapItem`/`MapItemSavedData` + decoracion de destino.
 
 **Etapa 10:**
 - End Cities: probado en juego, funcionan. Se bajo la frecuencia: `SPACING = 56` chunks y `CHANCE = 65` % por celda (antes 20 y 100 %).
@@ -91,7 +98,7 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Todo en `PotionCauldronInteraction`; el estado extra vive en el BlockEntity (no cambia el BlockState).
 
 ## Tareas pendientes (en este orden)
-A. **Verificar etapa 11**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
+A. **Verificar etapa 12**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
    (buscar `Mixin apply failed` / `InvalidInjectionException`). 
 C. **End Cities flotantes (etapa 8, SIN probar, no se si compila)**: `world/FloatingEndCityGenerator`. Sin Mixins ni Structure propia: en
    `ServerChunkEvents.CHUNK_LOAD (level, chunk, newlyGenerated)` (apuesta: la firma con 3 parametros) se detecta el chunk "anfitrion" de cada celda de 20x20 chunks

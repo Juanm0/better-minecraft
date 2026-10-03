@@ -29,9 +29,10 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
  * Solo se decide al generar un chunk NUEVO, asi que no se repite al reiniciar el mundo.
  */
 public final class FloatingEndCityGenerator {
-	/** Una ciudad por celda de SPACING x SPACING chunks (80 = ~1280 bloques, como las mansiones), con CHANCE % de que la celda tenga ciudad. */
-	private static final int SPACING = 80;
-	private static final int CHANCE = 85;
+	/** Una ciudad por celda de SPACING x SPACING chunks (96 = ~1500 bloques), con CHANCE % de que la celda tenga ciudad. El anfitrion cae en la mitad central de la celda, asi dos ciudades de celdas vecinas nunca quedan a menos de SPACING/2 chunks. */
+	private static final int SPACING = 96;
+	private static final int CHANCE = 60;
+	private static final java.util.Set<Long> DONE = new java.util.HashSet<>();
 	private static final Map<ResourceKey<Level>, ArrayDeque<BlockPos>> PENDING = new HashMap<>();
 
 	private FloatingEndCityGenerator() {
@@ -45,7 +46,7 @@ public final class FloatingEndCityGenerator {
 			ChunkPos pos = chunk.getPos();
 			int chunkX = pos.getMiddleBlockX() >> 4;
 			int chunkZ = pos.getMiddleBlockZ() >> 4;
-			if (isHost(level.getSeed(), chunkX, chunkZ)) {
+			if (isHost(level.getSeed(), chunkX, chunkZ) && DONE.add(((long) chunkX << 32) ^ (chunkZ & 0xFFFFFFFFL))) {
 				PENDING.computeIfAbsent(level.dimension(), k -> new ArrayDeque<>())
 					.add(new BlockPos(chunkX * 16 + 8, 0, chunkZ * 16 + 8));
 			}
@@ -78,8 +79,8 @@ public final class FloatingEndCityGenerator {
 		if (Math.floorMod(h >>> 40, 100L) >= CHANCE) {
 			return null;
 		}
-		int offX = 3 + (int) Math.floorMod(h, (long) (SPACING - 6));
-		int offZ = 3 + (int) Math.floorMod(h >>> 20, (long) (SPACING - 6));
+		int offX = SPACING / 4 + (int) Math.floorMod(h, (long) (SPACING / 2));
+		int offZ = SPACING / 4 + (int) Math.floorMod(h >>> 20, (long) (SPACING / 2));
 		return new int[] {sx * SPACING + offX, sz * SPACING + offZ};
 	}
 
