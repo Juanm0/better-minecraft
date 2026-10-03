@@ -5,7 +5,7 @@ Respondeme en espanol rioplatense. NO me hagas preguntas de confirmacion: decidi
 explicame despues que hiciste y que podria fallar. Yo pruebo y te cuento.
 El proyecto es solo Fabric: no uses ni me pidas instalar NeoForge/Forge (solo se lo lee como referencia).
 
-Te adjunto el zip del proyecto (`better-minecraft-etapa14.zip`). Descomprimilo y trabaja sobre ese codigo.
+Te adjunto el zip del proyecto (`better-minecraft-etapa16.zip`). Descomprimilo y trabaja sobre ese codigo.
 
 ## Entorno (verificado)
 - Minecraft 26.3, Fabric Loader 0.19.5, Fabric API 0.161.0+26.3, Loom 1.18-SNAPSHOT, Java 25.
@@ -61,7 +61,17 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Apuestas sin verificar contra 26.3: `ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, int)`, `Block.animateTick(BlockState, Level, BlockPos, RandomSource)`,
   `MobEffect.getColor()`, `LayeredCauldronBlock.LEVEL`, nombres de los modelos vanilla de caldero con agua, y que las clases de tint no cambiaron de paquete en 26.3.
 
-**Etapa 14 (SIN probar, no se si compila): destiladora**
+**Etapa 16 (SIN probar; el usuario probara las etapas 15+16 juntas): pocion en la cazuela solo mezcla**
+- Se ELIMINARON de la cazuela la polvora (arrojable) y la redstone (+duracion): esas funciones son solo de la destiladora (`BrewingStandMixing`). La cazuela solo mezcla efectos
+  (se puede volcar pociones normales y arrojadizas; la botella de vidrio siempre entrega `Items.POTION`). Se quito `splash` del `PotionCauldronBlockEntity`.
+- Estado: el mod podria estar terminado; falta probar etapas 15+16 en juego. Ideas opcionales: config en archivo, item de bloque (pick-block), tests en multijugador.
+
+**Etapa 15 (SIN probar): destiladora, ajustes finales**
+- La etapa 14 compilo y la animacion de vanilla funciona (probado). Cambios: (1) ya NO se muestran carteles en la action bar en la destiladora (los de la cazuela siguen);
+  (2) regla nueva: si UN efecto de la pocion ya esta en 16 min, la pocion entera no se puede alargar mas con redstone (ej.: regeneracion 45 s + resistencia al fuego 8 min:
+  1a redstone -> 8:45 y 16:00, y ya no se puede mas), asi los efectos terminan en tiempos distintos. Se mantiene +8 / +6 / +4 por refuerzo.
+
+**Etapa 14 (compila y funciona): destiladora**
 - La etapa 13 funciono (salen los carteles). Problemas reportados y arreglos: (1) sin animacion -> se escribe por REFLEXION el campo privado `BrewingStandBlockEntity.brewTime`
   (`BREW_TICKS - progress`, 400 ticks como vanilla) para la flecha/burbujas de la GUI; si el campo no existe se loguea un warning. (2) con una pocion vanilla + una mezclada en el mismo soporte,
   vanilla y el mod procesaban ambas y la redstone se aplicaba doble -> ahora el mod NO procesa si hay en las botellas algo que no sea pocion mezclada (`hasForeignBottle`) y avisa.
@@ -112,7 +122,7 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Todo en `PotionCauldronInteraction`; el estado extra vive en el BlockEntity (no cambia el BlockState).
 
 ## Tareas pendientes (en este orden)
-A. **Verificar etapa 14**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
+A. **Verificar etapa 16**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
    (buscar `Mixin apply failed` / `InvalidInjectionException`). 
 C. **End Cities flotantes (etapa 8, SIN probar, no se si compila)**: `world/FloatingEndCityGenerator`. Sin Mixins ni Structure propia: en
    `ServerChunkEvents.CHUNK_LOAD (level, chunk, newlyGenerated)` (apuesta: la firma con 3 parametros) se detecta el chunk "anfitrion" de cada celda de 20x20 chunks

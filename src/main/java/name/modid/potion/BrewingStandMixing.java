@@ -28,7 +28,7 @@ import net.minecraft.world.level.block.entity.BrewingStandBlockEntity;
  * Soporte para pociones (brewing stand) para las pociones MEZCLADAS de la cazuela (sin pocion base, solo efectos propios),
  * que el sistema de recetas de vanilla no reconoce:
  * - Polvora en el ingrediente: la pocion pasa a ser arrojable.
- * - Redstone en el ingrediente: 1a vez +8 min, 2a +6, luego +4 a cada efecto, tope 16 min (si ningun efecto puede subir, no hace nada ni gasta redstone).
+ * - Redstone en el ingrediente: 1a vez +8 min, 2a +6, luego +4 a cada efecto, tope 16 min; en cuanto UN efecto llega a 16 min, la pocion entera deja de poder alargarse (no gasta redstone).
  * Sin Mixins: se rastrean los brewing stands cargados y se corre un temporizador propio de 20 s (no usa combustible).
  * Las pociones vanilla siguen con la logica de vanilla.
  */
@@ -91,14 +91,6 @@ public final class BrewingStandMixing {
 		});
 	}
 
-	/** Mensaje en la action bar al jugador mas cercano (<= 8 bloques). */
-	private static void notifyNear(ServerLevel level, BlockPos pos, String text) {
-		Player player = level.getNearestPlayer(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 8.0, false);
-		if (player instanceof ServerPlayer sp) {
-			sp.sendSystemMessage(Component.literal(text), true);
-		}
-	}
-
 	/** Cada segundo busca soportes para pociones en los chunks cercanos a los jugadores (sin depender de eventos de carga). */
 	private static void scan(ServerLevel level) {
 		TRACKED.removeIf(stand -> stand.isRemoved());
@@ -140,9 +132,6 @@ public final class BrewingStandMixing {
 				}
 				ItemStack ing = stand.getItem(INGREDIENT_SLOT);
 				if ((ing.is(Items.GUNPOWDER) || ing.is(Items.REDSTONE)) && LOGGED.add(stand)) {
-					notifyNear(level, stand.getBlockPos(), hasForeignBottle(stand)
-						? "Destiladora: no mezcles pociones de vanilla ni botellas vacias con las mezcladas"
-						: "Destiladora: ninguna pocion mezclada se puede mejorar con eso");
 					BetterMinecraft.LOGGER.info("Soporte {}: ingrediente {} pero ninguna botella aplicable; slot0={} contenido={}",
 						stand.getBlockPos(), ing.getItem(), stand.getItem(0), stand.getItem(0).get(DataComponents.POTION_CONTENTS));
 				}
@@ -151,7 +140,6 @@ public final class BrewingStandMixing {
 			int progress = PROGRESS.getOrDefault(stand, 0) + 1;
 			if (progress == 1) {
 				BetterMinecraft.LOGGER.info("Soporte de pociones en {} empezo a procesar pociones mezcladas", stand.getBlockPos());
-				notifyNear(level, stand.getBlockPos(), "Destiladora: mezclando... (20 s)");
 			}
 			if (progress < BREW_TICKS) {
 				PROGRESS.put(stand, progress);
@@ -201,7 +189,6 @@ public final class BrewingStandMixing {
 			stand.setChanged();
 			BlockPos pos = stand.getBlockPos();
 			level.playSound(null, pos, SoundEvents.BOTTLE_FILL, SoundSource.BLOCKS, 1.0F, 1.2F);
-			notifyNear(level, pos, gunpowder ? "Destiladora: pociones arrojables listas" : "Destiladora: duracion aumentada");
 		}
 	}
 
@@ -222,6 +209,12 @@ public final class BrewingStandMixing {
 		// Cuantas veces ya se le puso redstone (se guarda en el componente REPAIR_COST, que no se usa en pociones): 1a vez +8 min, 2a +6, luego +4.
 		int boosts = stack.getOrDefault(DataComponents.REPAIR_COST, 0);
 		int bonus = boosts <= 0 ? BONUS : (boosts == 1 ? 6 * 60 * 20 : 4 * 60 * 20);
+		// Si algun efecto ya llego al tope (16 min), la pocion entera no se puede alargar mas: asi los efectos terminan en tiempos distintos.
+		for (MobEffectInstance effect : contents.getAllEffects()) {
+			if (effect.getDuration() >= MAX_DURATION) {
+				return null;
+			}
+		}
 		boolean changed = false;
 		PotionContents extended = PotionContents.EMPTY;
 		for (MobEffectInstance effect : contents.getAllEffects()) {

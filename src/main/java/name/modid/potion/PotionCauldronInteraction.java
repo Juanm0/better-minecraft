@@ -35,8 +35,6 @@ import net.minecraft.world.phys.BlockHitResult;
  * No se toca ninguna interaccion vanilla del caldero (agua, lava, nieve): el evento solo actua con pociones con efectos.
  */
 public final class PotionCauldronInteraction {
-	private static final int MAX_DURATION = 16 * 60 * 20; // 16 minutos en ticks
-	private static final int REDSTONE_BONUS = 8 * 60 * 20; // +8 minutos
 
 	private PotionCauldronInteraction() {
 	}
@@ -58,56 +56,6 @@ public final class PotionCauldronInteraction {
 		}
 
 		ItemStack held = player.getItemInHand(hand);
-
-		// Polvora = la mezcla pasa a ser arrojable. Redstone = +8 min a cada efecto (tope 16 min). Solo en la cazuela de pociones.
-		if (isPotionCauldron && (held.is(Items.GUNPOWDER) || held.is(Items.REDSTONE))) {
-			if (level.isClientSide()) {
-				return InteractionResult.SUCCESS;
-			}
-			if (!(level.getBlockEntity(pos) instanceof PotionCauldronBlockEntity be) || be.getEffects().isEmpty()) {
-				msg(player, "La cazuela no tiene efectos.");
-				return InteractionResult.SUCCESS;
-			}
-			BetterMinecraft.LOGGER.info("Cazuela: {} usado en {}", held.getItem(), pos);
-			boolean applied = false;
-			if (held.is(Items.GUNPOWDER)) {
-				if (!be.isSplash()) {
-					be.setSplash(true);
-					applied = true;
-				}
-			} else {
-				List<MobEffectInstance> boosted = new ArrayList<>();
-				for (MobEffectInstance effect : be.getEffects()) {
-					int duration = effect.getDuration();
-					// instantaneos (duracion 1) e infinitos (<0) no se tocan; los que ya llegaron al tope tampoco
-					if (duration > 1 && duration < MAX_DURATION) {
-						int newDuration = Math.min(MAX_DURATION, duration + REDSTONE_BONUS);
-						boosted.add(new MobEffectInstance(effect.getEffect(), newDuration, effect.getAmplifier()));
-						applied = true;
-					} else {
-						boosted.add(effect);
-					}
-				}
-				if (applied) {
-					be.setMix(boosted, be.getPours());
-				}
-			}
-			if (!applied) {
-				msg(player, held.is(Items.GUNPOWDER)
-					? "La mezcla ya es arrojable."
-					: "Ningun efecto se puede alargar mas (tope 16 min).");
-			}
-			if (applied) {
-				msg(player, held.is(Items.GUNPOWDER)
-					? "La mezcla ahora es arrojable."
-					: "+8 minutos a la mezcla.");
-				level.playSound(null, pos, SoundEvents.BOTTLE_FILL, SoundSource.BLOCKS, 1.0F, 1.4F);
-				if (!player.hasInfiniteMaterials()) {
-					held.shrink(1);
-				}
-			}
-			return InteractionResult.SUCCESS;
-		}
 
 		if (isPotion(held)) {
 			List<MobEffectInstance> incoming = effectsOf(held);
@@ -156,7 +104,7 @@ public final class PotionCauldronInteraction {
 			for (MobEffectInstance effect : be.getEffects()) {
 				contents = contents.withEffectAdded(new MobEffectInstance(effect));
 			}
-			ItemStack potion = new ItemStack(be.isSplash() ? Items.SPLASH_POTION : Items.POTION);
+			ItemStack potion = new ItemStack(Items.POTION);
 			potion.set(DataComponents.POTION_CONTENTS, contents);
 			int remaining = state.getValue(PotionCauldronBlock.LEVEL) - 1;
 			if (remaining <= 0) {
@@ -177,13 +125,6 @@ public final class PotionCauldronInteraction {
 			held.shrink(1);
 		}
 		player.getInventory().placeItemBackInInventory(result, Prediction.SERVER_ONLY);
-	}
-
-	/** Mensaje en la action bar (solo servidor). */
-	private static void msg(Player player, String text) {
-		if (player instanceof ServerPlayer sp) {
-			sp.sendSystemMessage(Component.literal(text), true);
-		}
 	}
 
 	private static boolean isPotion(ItemStack stack) {

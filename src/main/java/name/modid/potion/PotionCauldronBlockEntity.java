@@ -16,8 +16,6 @@ public class PotionCauldronBlockEntity extends BlockEntity {
 	private List<MobEffectInstance> effects = List.of();
 	/** Cuantas pociones se volcaron en esta mezcla (2+ = liquido violeta). */
 	private int pours = 0;
-	/** true = al sacar botella sale pocion arrojadiza (se activa con polvora). */
-	private boolean splash = false;
 
 	public PotionCauldronBlockEntity(BlockPos pos, BlockState state) {
 		super(PotionMod.POTION_CAULDRON_ENTITY, pos, state);
@@ -31,15 +29,6 @@ public class PotionCauldronBlockEntity extends BlockEntity {
 		return pours;
 	}
 
-	public boolean isSplash() {
-		return splash;
-	}
-
-	public void setSplash(boolean splash) {
-		this.splash = splash;
-		this.setChanged();
-	}
-
 	public void setMix(List<MobEffectInstance> effects, int pours) {
 		this.effects = List.copyOf(effects);
 		this.pours = pours;
@@ -51,7 +40,6 @@ public class PotionCauldronBlockEntity extends BlockEntity {
 		super.loadAdditional(input);
 		this.effects = input.read("effects", EFFECTS_CODEC).orElse(List.of());
 		this.pours = input.getIntOr("pours", 0);
-		this.splash = input.getBooleanOr("splash", false);
 	}
 
 	@Override
@@ -59,6 +47,5 @@ public class PotionCauldronBlockEntity extends BlockEntity {
 		super.saveAdditional(output);
 		output.store("effects", EFFECTS_CODEC, this.effects);
 		output.putInt("pours", this.pours);
-		output.putBoolean("splash", this.splash);
 	}
 }
