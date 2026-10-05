@@ -37,7 +37,7 @@ public class BetterMinecraft implements ModInitializer {
 		CartographerTrades.init();
 		BagMod.init();
 
-		LOGGER.info("Better Minecraft etapa 19. Loaded: enchanting reroll, two-phase dragon, beacon protection, potion cauldron, floating End Cities, bags.");
+		LOGGER.info("Better Minecraft etapa 20. Loaded: enchanting reroll, two-phase dragon, beacon protection, potion cauldron, floating End Cities, bags.");
 	}
 
 	public static Identifier id(String path) {

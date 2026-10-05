@@ -40,7 +40,7 @@ Versiones grandes del bundle, misma interaccion (clic derecho), y la mejora cons
 - **Saco de hierro mejorado**: bloques de hierro en las filas 1 y 3; fila 2 = bundle, saco de hierro, bundle. 18 stacks (2 x 9, como un shulker mas chico).
 - No se pueden meter sacos, bundles ni shulkers adentro.
 - Interaccion como el bundle de vanilla: tooltip grafico (grilla de items + barra de capacidad), la **rueda del mouse** sobre el saco
-  (en cualquier inventario) elige que stack sale, y el **clic derecho en el aire suelta UN stack** (el seleccionado o el ultimo que pusiste).
+  (en el inventario normal y en el creativo) elige que stack sale, y el **clic derecho en el aire suelta UN stack** (el seleccionado o el ultimo que pusiste).
 
 ## Notas de desarrollo
 - Minecraft 26.3, Fabric Loader 0.19.5, Fabric API 0.161.0+26.3, Java 25, sin mappings (nombres de Mojang).

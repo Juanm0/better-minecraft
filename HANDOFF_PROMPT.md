@@ -5,7 +5,7 @@ Respondeme en espanol rioplatense. NO me hagas preguntas de confirmacion: decidi
 explicame despues que hiciste y que podria fallar. Yo pruebo y te cuento.
 El proyecto es solo Fabric: no uses ni me pidas instalar NeoForge/Forge (solo se lo lee como referencia).
 
-Te adjunto el zip del proyecto (`better-minecraft-etapa19.zip`). Descomprimilo y trabaja sobre ese codigo.
+Te adjunto el zip del proyecto (`better-minecraft-etapa20.zip`). Descomprimilo y trabaja sobre ese codigo.
 
 ## Entorno (verificado)
 - Minecraft 26.3, Fabric Loader 0.19.5, Fabric API 0.161.0+26.3, Loom 1.18-SNAPSHOT, Java 25.
@@ -64,6 +64,18 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 **NOTA DE NUMERACION:** el usuario llama "etapa 15" a lo que aqui figura como "Etapa 16", asi que esta entrega es la **16b** y la proxima sera la **17**.
 
 **NUMERACION (usar siempre numeros normales, sin letras): la entrega actual es la 19; la proxima es la 20, y asi.**
+
+**Etapa 20 (SIN probar): rueda del mouse de los sacos tambien en el INVENTARIO CREATIVO y con indices correctos.** El usuario reporto que la rueda no seleccionaba items. Causa mas probable: la 19 excluia
+`CreativeModeInventoryScreen` (su lista de slots no coincide con la del servidor) y el usuario probaba en creativo. Ahora: (1) `BagClient` ya no excluye el creativo; (2) `BagSelectPayload(kind, index, selected)`:
+kind 0 = indice de slot del menu abierto, kind 1 = indice del inventario del jugador (el cliente busca el saco en `player.getInventory()` por IDENTIDAD de ItemStack, asi funciona en creativo y survival);
+(3) el servidor resuelve con `player.getInventory().getItem(i)` o `menu.getSlot(i)` y hace `containerMenu.broadcastChanges()`; (4) log "Saco: rueda sobre ..." las 3 primeras veces para diagnosticar.
+Si aun no anda: pedir `latest.log` (si no sale "Saco: rueda sobre", el evento `ScreenMouseEvents.allowMouseScroll` no se dispara o `hoveredSlot` es null: probar un Mixin a `AbstractContainerScreen.mouseScrolled`).
+
+**Etapa 19b = misma entrega 19 + arreglo de la destiladora (SIN probar).** El usuario reporto que la destiladora dejo de alargar (redstone) y de volver arrojables (polvora) las pociones mezcladas.
+El codigo de `BrewingStandMixing` NO habia sido modificado desde la etapa 17b, asi que la causa no esta identificada con certeza. Cambios: (1) en 26.3 las recetas de la destiladora son DATOS (recetas por pocion base, `BrewingInput(container, ingredient)`),
+por lo que las pociones mezcladas (sin pocion base) no matchean ninguna receta vanilla y no hay conflicto con vanilla; (2) cada soporte se procesa dentro de try/catch (error logueado, no se cuelga); (3) el modo (polvora/redstone) se fija al empezar y
+se revalida al terminar; (4) el escaneo de soportes ahora cubre +-6 chunks; (5) NUEVOS LOGS que explican el motivo cuando hay polvora/redstone y no se procesa ("Soporte X: no se procesa porque ...": botella no mezclada,
+sin botellas, ya arrojables, o ningun efecto alargable) y "pociones mezcladas procesadas". Si sigue fallando, pedirle al usuario el `latest.log` y buscar "Soporte" (si NO aparece ninguna linea, el soporte no se esta rastreando).
 
 **Etapa 19 (SIN probar): HUD y clic derecho de los sacos, como el bundle de vanilla.** Los sacos de la 17b ya compilaban y los crafteos funcionan (probado).
 - Se quito la lore (lista de texto): `BagContents.write` ahora hace `bag.remove(DataComponents.LORE)` (limpia sacos viejos) y `bag.remove(BagMod.SELECTED)`.
@@ -165,7 +177,7 @@ nivel requerido = vanilla + hoja-1; se gastan `hoja + 2` niveles y lapis).
 - Todo en `PotionCauldronInteraction`; el estado extra vive en el BlockEntity (no cambia el BlockState).
 
 ## Tareas pendientes (en este orden)
-A. **Verificar etapa 19**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
+A. **Verificar etapa 20**: si Actions falla, te pego el error; corregilo contra las fuentes de verdad. Si el juego se cierra al abrir: `latest.log`
    (buscar `Mixin apply failed` / `InvalidInjectionException`). 
 C. **End Cities flotantes (etapa 8, SIN probar, no se si compila)**: `world/FloatingEndCityGenerator`. Sin Mixins ni Structure propia: en
    `ServerChunkEvents.CHUNK_LOAD (level, chunk, newlyGenerated)` (apuesta: la firma con 3 parametros) se detecta el chunk "anfitrion" de cada celda de 20x20 chunks

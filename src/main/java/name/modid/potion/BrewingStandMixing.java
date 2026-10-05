@@ -39,8 +39,10 @@ public final class BrewingStandMixing {
 	private static final int INGREDIENT_SLOT = 3;
 
 	private static final List<BrewingStandBlockEntity> TRACKED = new ArrayList<>();
-	private static final java.util.Set<BrewingStandBlockEntity> LOGGED = new java.util.HashSet<>();
+	private static final Map<BrewingStandBlockEntity, String> LAST_REASON = new HashMap<>();
 	private static final Map<BrewingStandBlockEntity, Integer> PROGRESS = new HashMap<>();
+	/** Ingrediente con el que empezo cada proceso (true = polvora, false = redstone). */
+	private static final Map<BrewingStandBlockEntity, Boolean> MODE = new HashMap<>();
 
 	/** brewTime privado del soporte: lo escribimos para que la GUI muestre la flecha y las burbujas de vanilla. */
 	private static final java.lang.reflect.Field BREW_TIME_FIELD = findBrewTimeField();
@@ -97,8 +99,8 @@ public final class BrewingStandMixing {
 		for (ServerPlayer player : level.players()) {
 			int pcx = player.blockPosition().getX() >> 4;
 			int pcz = player.blockPosition().getZ() >> 4;
-			for (int dx = -4; dx <= 4; dx++) {
-				for (int dz = -4; dz <= 4; dz++) {
+			for (int dx = -6; dx <= 6; dx++) {
+				for (int dz = -6; dz <= 6; dz++) {
 					LevelChunk chunk = level.getChunkSource().getChunkNow(pcx + dx, pcz + dz);
 					if (chunk == null) {
 						continue;
@@ -112,7 +114,8 @@ public final class BrewingStandMixing {
 			}
 		}
 		PROGRESS.keySet().removeIf(stand -> !TRACKED.contains(stand));
-		LOGGED.removeIf(stand -> !TRACKED.contains(stand));
+		MODE.keySet().removeIf(stand -> !TRACKED.contains(stand));
+		LAST_REASON.keySet().removeIf(stand -> !TRACKED.contains(stand));
 	}
 
 	private static void tick(ServerLevel level) {
@@ -126,30 +129,80 @@ public final class BrewingStandMixing {
 			if (stand.getLevel() != level || stand.isRemoved()) {
 				continue;
 			}
-			if (!canProcess(stand)) {
-				if (PROGRESS.remove(stand) != null) {
-					setBrewTime(stand, 0);
-				}
-				ItemStack ing = stand.getItem(INGREDIENT_SLOT);
-				if ((ing.is(Items.GUNPOWDER) || ing.is(Items.REDSTONE)) && LOGGED.add(stand)) {
-					BetterMinecraft.LOGGER.info("Soporte {}: ingrediente {} pero ninguna botella aplicable; slot0={} contenido={}",
-						stand.getBlockPos(), ing.getItem(), stand.getItem(0), stand.getItem(0).get(DataComponents.POTION_CONTENTS));
-				}
-				continue;
+			try {
+				tickStand(level, stand);
+			} catch (RuntimeException e) {
+				// Una falla en un soporte no debe frenar a los demas ni dejar el temporizador colgado.
+				BetterMinecraft.LOGGER.error("Error procesando el soporte de pociones en " + stand.getBlockPos(), e);
+				PROGRESS.remove(stand);
+				MODE.remove(stand);
 			}
-			int progress = PROGRESS.getOrDefault(stand, 0) + 1;
-			if (progress == 1) {
-				BetterMinecraft.LOGGER.info("Soporte de pociones en {} empezo a procesar pociones mezcladas", stand.getBlockPos());
-			}
-			if (progress < BREW_TICKS) {
-				PROGRESS.put(stand, progress);
-				setBrewTime(stand, BREW_TICKS - progress); // animacion de vanilla en la GUI
-				continue;
-			}
-			PROGRESS.remove(stand);
-			setBrewTime(stand, 0);
-			process(level, stand);
 		}
+	}
+
+	private static void tickStand(ServerLevel level, BrewingStandBlockEntity stand) {
+		ItemStack ingredient = stand.getItem(INGREDIENT_SLOT);
+		boolean gunpowder = ingredient.is(Items.GUNPOWDER);
+		if (!canProcess(stand)) {
+			if (PROGRESS.remove(stand) != null) {
+				setBrewTime(stand, 0);
+			}
+			MODE.remove(stand);
+			String reason = reason(stand);
+			if (reason == null) {
+				LAST_REASON.remove(stand);
+			} else if (!reason.equals(LAST_REASON.put(stand, reason))) {
+				BetterMinecraft.LOGGER.info("Soporte {}: no se procesa porque {}", stand.getBlockPos(), reason);
+			}
+			return;
+		}
+		LAST_REASON.remove(stand);
+		// Si cambiaron el ingrediente (polvora <-> redstone) a mitad de camino, se empieza de nuevo.
+		Boolean mode = MODE.get(stand);
+		if (mode != null && mode != gunpowder) {
+			PROGRESS.remove(stand);
+		}
+		MODE.put(stand, gunpowder);
+		int progress = PROGRESS.getOrDefault(stand, 0) + 1;
+		if (progress == 1) {
+			BetterMinecraft.LOGGER.info("Soporte de pociones en {} empezo a procesar pociones mezcladas ({})",
+				stand.getBlockPos(), gunpowder ? "polvora" : "redstone");
+		}
+		if (progress < BREW_TICKS) {
+			PROGRESS.put(stand, progress);
+			setBrewTime(stand, BREW_TICKS - progress); // animacion de vanilla en la GUI
+			return;
+		}
+		PROGRESS.remove(stand);
+		MODE.remove(stand);
+		setBrewTime(stand, 0);
+		process(level, stand, gunpowder);
+	}
+
+	/** Motivo (para el log) por el que no se procesa aunque haya polvora o redstone. null = nada que avisar. */
+	private static String reason(BrewingStandBlockEntity stand) {
+		ItemStack ingredient = stand.getItem(INGREDIENT_SLOT);
+		boolean gunpowder = ingredient.is(Items.GUNPOWDER);
+		if (!gunpowder && !ingredient.is(Items.REDSTONE)) {
+			return null;
+		}
+		boolean any = false;
+		for (int i = 0; i < 3; i++) {
+			ItemStack bottle = stand.getItem(i);
+			if (bottle.isEmpty()) {
+				continue;
+			}
+			any = true;
+			if (!isMixed(bottle)) {
+				return "la botella " + i + " no es una pocion mezclada (" + bottle.getItem() + ", contenido=" + bottle.get(DataComponents.POTION_CONTENTS) + ")";
+			}
+		}
+		if (!any) {
+			return "no hay botellas";
+		}
+		return gunpowder
+			? "las pociones ya son arrojables"
+			: "ninguna pocion se puede alargar (algun efecto ya esta en 16 min, o es instantaneo/infinito)";
 	}
 
 	/** Hay ingrediente valido y al menos una botella que cambiaria. */
@@ -170,9 +223,12 @@ public final class BrewingStandMixing {
 		return false;
 	}
 
-	private static void process(ServerLevel level, BrewingStandBlockEntity stand) {
+	private static void process(ServerLevel level, BrewingStandBlockEntity stand, boolean gunpowder) {
 		ItemStack ingredient = stand.getItem(INGREDIENT_SLOT);
-		boolean gunpowder = ingredient.is(Items.GUNPOWDER);
+		if (!ingredient.is(gunpowder ? Items.GUNPOWDER : Items.REDSTONE)) {
+			BetterMinecraft.LOGGER.info("Soporte {}: el ingrediente cambio antes de terminar; no se procesa", stand.getBlockPos());
+			return;
+		}
 		boolean changed = false;
 		for (int i = 0; i < 3; i++) {
 			ItemStack result = convert(stand.getItem(i), gunpowder);
@@ -182,6 +238,7 @@ public final class BrewingStandMixing {
 			}
 		}
 		if (changed) {
+			BetterMinecraft.LOGGER.info("Soporte {}: pociones mezcladas procesadas ({})", stand.getBlockPos(), gunpowder ? "arrojables" : "duracion aumentada");
 			ingredient.shrink(1);
 			if (ingredient.isEmpty()) {
 				stand.setItem(INGREDIENT_SLOT, ItemStack.EMPTY);

@@ -47,17 +47,24 @@ public final class BagMod {
 		PayloadTypeRegistry.serverboundPlay().register(BagSelectPayload.TYPE, BagSelectPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(BagSelectPayload.TYPE, (payload, context) -> {
 			ServerPlayer player = context.player();
-			AbstractContainerMenu menu = player.containerMenu;
-			if (payload.slot() < 0 || payload.slot() >= menu.slots.size()) {
-				return;
+			ItemStack stack = ItemStack.EMPTY;
+			if (payload.kind() == BagSelectPayload.INVENTORY_SLOT) {
+				if (payload.index() >= 0 && payload.index() < player.getInventory().getContainerSize()) {
+					stack = player.getInventory().getItem(payload.index());
+				}
+			} else {
+				AbstractContainerMenu menu = player.containerMenu;
+				if (payload.index() >= 0 && payload.index() < menu.slots.size()) {
+					stack = menu.getSlot(payload.index()).getItem();
+				}
 			}
-			ItemStack stack = menu.getSlot(payload.slot()).getItem();
 			if (!(stack.getItem() instanceof BagItem)) {
 				return;
 			}
 			int size = BagContents.read(stack).size();
 			int selected = payload.selected();
 			BagContents.setSelected(stack, selected >= 0 && selected < size ? selected : -1);
+			player.containerMenu.broadcastChanges();
 		});
 		GOLD_BAG = registerBag("gold_bag", BagTier.GOLD);
 		IRON_BAG = registerBag("iron_bag", BagTier.IRON);
